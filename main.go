@@ -6,7 +6,7 @@ import (
 	"github.com/Microck/lsops/internal/app"
 )
 
-var version = "0.3.0"
+var version = "0.4.0"
 
 func main() {
 	os.Exit(app.Run(os.Args[1:], os.Stdout, os.Stderr, version))

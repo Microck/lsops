@@ -1,4 +1,4 @@
-name: release 0.3.0
+name: release 0.4.0
 on:
   pull_request:
     paths:
@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: release-0.3.0-${{ github.event_name }}
+  group: release-0.4.0-${{ github.event_name }}
   cancel-in-progress: false
 jobs:
   test:
@@ -57,12 +57,12 @@ jobs:
       - name: Test publication gates without network writes
         run: python3 scripts/test-release-gates.py
       - name: Build and smoke-test bundle
-        run: sh scripts/package-release.sh 0.3.0 "$RUNNER_TEMP/release"
+        run: sh scripts/package-release.sh 0.4.0 "$RUNNER_TEMP/release"
 
   publish:
     needs: [test, package]
     if: >-
-      github.event_name == 'push' && github.repository == 'Microck/lsops' && startsWith(github.event.head_commit.message, 'chore(release): prepare v0.3.0')
+      github.event_name == 'push' && github.repository == 'Microck/lsops' && startsWith(github.event.head_commit.message, 'chore(release): prepare v0.4.0')
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
       - name: Test publication gates without network writes
         run: python3 scripts/test-release-gates.py
       - name: Build and smoke-test bundle
-        run: sh scripts/package-release.sh 0.3.0 "$RUNNER_TEMP/release"
+        run: sh scripts/package-release.sh 0.4.0 "$RUNNER_TEMP/release"
       - name: Publish once and verify downloaded bytes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,27 +86,27 @@ jobs:
         run: |
           set -euo pipefail
           # Match only the subject; a squash-merge body is allowed.
-          test "$(git log -1 --format=%s)" = 'chore(release): prepare v0.3.0'
+          test "$(git log -1 --format=%s)" = 'chore(release): prepare v0.4.0'
           # Never overwrite an existing release/tag or upload without validation.
-          if gh release view v0.3.0 >/dev/null 2>&1; then
-            echo "v0.3.0 already exists; refusing to overwrite"
+          if gh release view v0.4.0 >/dev/null 2>&1; then
+            echo "v0.4.0 already exists; refusing to overwrite"
             exit 1
           fi
-          tag_sha="$(git ls-remote --tags origin refs/tags/v0.3.0 | awk '{print $1}')"
+          tag_sha="$(git ls-remote --tags origin refs/tags/v0.4.0 | awk '{print $1}')"
           if [ -n "$tag_sha" ]; then
             test "$tag_sha" = "$GITHUB_SHA" || { echo "Existing tag points elsewhere; refusing to move it"; exit 1; }
             echo "Reusing matching tag after an interrupted release creation"
           else
-            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref=refs/tags/v0.3.0 -f sha="$GITHUB_SHA"
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref=refs/tags/v0.4.0 -f sha="$GITHUB_SHA"
           fi
-          gh release create v0.3.0 "$RUNNER_TEMP/release/lsops-0.3.0.zip" "$RUNNER_TEMP/release/SHA256SUMS.txt" --verify-tag --target "$GITHUB_SHA" --title "lsops 0.3.0" --notes-file RELEASE_NOTES.md --latest
+          gh release create v0.4.0 "$RUNNER_TEMP/release/lsops-0.4.0.zip" "$RUNNER_TEMP/release/SHA256SUMS.txt" --verify-tag --target "$GITHUB_SHA" --title "lsops 0.4.0" --notes-file RELEASE_NOTES.md --latest
           mkdir "$RUNNER_TEMP/downloaded"
-          gh release download v0.3.0 --dir "$RUNNER_TEMP/downloaded"
+          gh release download v0.4.0 --dir "$RUNNER_TEMP/downloaded"
           cd "$RUNNER_TEMP/downloaded"
           sha256sum --check SHA256SUMS.txt
-          cmp lsops-0.3.0.zip "$RUNNER_TEMP/release/lsops-0.3.0.zip"
-          unzip -q lsops-0.3.0.zip
+          cmp lsops-0.4.0.zip "$RUNNER_TEMP/release/lsops-0.4.0.zip"
+          unzip -q lsops-0.4.0.zip
           cd lsops
           sha256sum --check SHA256SUMS
           sh install.sh --dir "$RUNNER_TEMP/fresh-install"
-          test "$("$RUNNER_TEMP/fresh-install/lsops" --version)" = "lsops 0.3.0"
+          test "$("$RUNNER_TEMP/fresh-install/lsops" --version)" = "lsops 0.4.0"

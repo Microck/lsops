@@ -18,13 +18,13 @@
 
 No npm package or external publishing account is used.
 
-## 0.3.0 publication
+## 0.4.0 publication
 
 The version-scoped release workflow validates pull requests without publishing.
-For the authorized 0.3.0 release, squash-merge the release preparation PR with the
-exact title `chore(release): prepare v0.3.0`. The main push must change
+For the authorized 0.4.0 release, squash-merge the release preparation PR with the
+exact title `chore(release): prepare v0.4.0`. The main push must change
 RELEASE_NOTES.md. The workflow reruns native CI and bundle validation, then uses
-the existing GitHub Actions token in the publish job only to create v0.3.0 with
+the existing GitHub Actions token in the publish job only to create v0.4.0 with
 both assets attached. No new credentials or external package account are used.
 Other commit titles, pull requests and future versions cannot publish through
 this version-scoped workflow.

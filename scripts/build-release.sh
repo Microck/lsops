@@ -5,7 +5,7 @@ if [ "$#" -gt 2 ]; then
   printf '%s\n' 'Usage: sh scripts/build-release.sh [VERSION] [OUTPUT_DIRECTORY]' >&2
   exit 2
 fi
-release_version=${1:-0.3.0}
+release_version=${1:-0.4.0}
 case "$release_version" in
   ''|*[!A-Za-z0-9._+-]*)
     printf '%s\n' 'Version may contain only letters, digits, dots, underscores, pluses, and hyphens.' >&2
