@@ -84,8 +84,12 @@ func Load(path string) (Config, error) {
 		return Config{}, fmt.Errorf("open config %q: %w", path, err)
 	}
 	defer f.Close()
+	return loadFrom(f, path)
+}
 
-	data, err := io.ReadAll(io.LimitReader(f, maxFileSize+1))
+// loadFrom parses only the supplied reader; path is used for diagnostics.
+func loadFrom(reader io.Reader, path string) (Config, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxFileSize+1))
 	if err != nil {
 		return Config{}, fmt.Errorf("read config %q: %w", path, err)
 	}
