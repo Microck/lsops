@@ -4,17 +4,17 @@ body=textwrap.dedent(workflow.rsplit('        run: |\n',1)[1])
 # Stop immediately before the download stage; mock release creation ends successfully.
 body=body[:body.index('mkdir "$RUNNER_TEMP/downloaded"')]
 cases=[
- ('chore(release): prepare v0.4.0','',False,True),
- ('chore(release): prepare v0.4.0','expected',False,True),
- ('chore(release): prepare v0.4.0 revised','',False,False),
- ('chore(release): prepare v0.4.0','elsewhere',False,False),
- ('chore(release): prepare v0.4.0','expected',True,False),
- ('chore(release): prepare v0.4.0','NETWORK_ERROR',False,False),
+ ('chore(release): prepare v0.4.1','',False,True),
+ ('chore(release): prepare v0.4.1','expected',False,True),
+ ('chore(release): prepare v0.4.1 revised','',False,False),
+ ('chore(release): prepare v0.4.1','elsewhere',False,False),
+ ('chore(release): prepare v0.4.1','expected',True,False),
+ ('chore(release): prepare v0.4.1','NETWORK_ERROR',False,False),
 ]
 with tempfile.TemporaryDirectory() as tmp:
  root=pathlib.Path(tmp)
  for name,text in {
- 'git': '#!/bin/bash\nif [ "$1" = log ]; then printf "%s\\n" "$SUBJECT"; else [ "$TAG" != NETWORK_ERROR ] || exit 9; [ -z "$TAG" ] || printf "%s\\trefs/tags/v0.4.0\\n" "$TAG"; fi\n',
+ 'git': '#!/bin/bash\nif [ "$1" = log ]; then printf "%s\\n" "$SUBJECT"; else [ "$TAG" != NETWORK_ERROR ] || exit 9; [ -z "$TAG" ] || printf "%s\\trefs/tags/v0.4.1\\n" "$TAG"; fi\n',
  'gh': '#!/bin/bash\nif [ "$1 $2" = "release view" ]; then [ "$EXISTS" = yes ]; elif [ "$1 $2" = "release create" ]; then echo created >> "$MARKER"; else echo tag >> "$MARKER"; fi\n'
  }.items():
   p=root/name;p.write_text(text);p.chmod(0o755)

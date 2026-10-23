@@ -1,4 +1,4 @@
-# Unreleased
+# lsops 0.4.1
 
 - Fix OMP injection timing: session start/resume, navigation and post-compaction
   only. No subprocess or catalogue injection on ordinary model/tool turns.
