@@ -29,7 +29,11 @@ both assets attached. No new credentials or external package account are used.
 Other commit titles, pull requests and future versions cannot publish through
 this version-scoped workflow.
 
-The job refuses existing tags/releases, downloads the published bundle again,
+The job checks the exact commit subject before publication, allowing a squash
+commit body but rejecting title suffixes. It refuses existing releases and tags
+pointing elsewhere. An orphaned lightweight tag pointing exactly to the current
+commit can be reused if no release exists; it is never moved.
+The job downloads the published bundle again,
 checks both checksum manifests and performs a fresh disposable Linux install.
 If publication partially fails, inspect the actual release and assets before any
 retry. Never delete or overwrite a published version to conceal a failed run;
