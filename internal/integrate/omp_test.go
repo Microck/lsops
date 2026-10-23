@@ -140,3 +140,21 @@ func TestOMPRejectsSymlinkDestination(t *testing.T) {
 		t.Fatal("symlink target modified")
 	}
 }
+
+func TestOMPTargetMetadataDescribesLifecycle(t *testing.T) {
+	for _, target := range Targets() {
+		if target.Name != "omp" {
+			continue
+		}
+		for _, want := range []string{"session start/resume", "switch/branch/tree", "after compaction"} {
+			if !bytes.Contains([]byte(target.Refresh), []byte(want)) {
+				t.Fatalf("missing %q: %s", want, target.Refresh)
+			}
+		}
+		if !bytes.Contains([]byte(target.Notes[0]), []byte("not a per-model context hook")) {
+			t.Fatal(target.Notes)
+		}
+		return
+	}
+	t.Fatal("missing OMP target")
+}
