@@ -1,10 +1,10 @@
-# Logo
+# logo
 
-The README uses [lsops.png](../.github/assets/lsops.png), generated with the
-built-in image generation tool. The mark combines a terminal prompt with a list
-of commands. It uses white on black and has no text.
+the readme uses [lsops.png](../.github/assets/lsops.png), generated with the
+built-in image generation tool. the mark combines a terminal prompt with a list
+of commands. it uses white on black and has no text.
 
-## Generation prompt
+## generation prompt
 
 ```text
 Use case: logo-brand

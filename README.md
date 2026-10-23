@@ -1,22 +1,22 @@
 <div align="center">
   <img src=".github/assets/lsops.png" width="160" alt="lsops logo">
   <h1>lsops</h1>
-  <p>A CLI catalogue for coding agents.</p>
-  <a href="https://github.com/Microck/lsops/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/lsops/check.yml?branch=main&style=flat-square&label=ci&color=000000" alt="CI status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-000000?style=flat-square" alt="MIT license"></a>
+  <p>a cli catalogue for coding agents.</p>
+  <a href="https://github.com/Microck/lsops/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/lsops/check.yml?branch=main&style=flat-square&label=ci&color=000000" alt="ci status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-000000?style=flat-square" alt="mit license"></a>
 </div>
 
-Register the commands you want your agent to know about and write a description
+register the commands you want your agent to know about and write a description
 for each. `lsops` lists those commands, checks whether their executables are
 available, and can add the list to your agent's context through a local hook.
-Listing and discovery never run registered commands. PATH discovery is optional.
+listing and discovery never run registered commands. PATH discovery is optional.
 
-`lsops` is a standalone Go binary with no third-party dependencies or background
-service. The catalogue stays in a local JSON file.
+`lsops` is a standalone go binary with no third-party dependencies or background
+service. the catalogue stays in a local json file.
 
-## Install
+## install
 
-Build from source with Go 1.23 or later on Linux or macOS:
+build from source with go 1.23 or later on linux or macos:
 
 ```sh
 git clone https://github.com/Microck/lsops.git
@@ -26,49 +26,49 @@ export PATH="$HOME/.local/bin:$PATH"
 lsops --version
 ```
 
-On Windows, run `.\install.ps1` in PowerShell and use the executable path it
-prints. The installers do not edit shell profiles or configure agent hooks.
-Keep the installation directory on your shell's and agent's PATH for future
-sessions. See the [installation guide](docs/usage.md#install) for custom paths
+on windows, run `.\install.ps1` in powershell and use the executable path it
+prints. the installers do not edit shell profiles or configure agent hooks.
+keep the installation directory on your shell's and agent's PATH for future
+sessions. see the [installation guide](docs/usage.md#install) for custom paths
 and release bundles with prebuilt binaries.
 
-## Use it
+## use it
 
 ```sh
-lsops add gh "Work with GitHub issues and pull requests"
-lsops add parallel-cli "Search the web with Parallel"
+lsops add gh "work with github issues and pull requests"
+lsops add parallel-cli "search the web with parallel"
 lsops
 ```
 
-Run `add` again to update a description, or `lsops remove gh` to remove an entry.
-Registered commands stay in the list when unavailable. Availability means lsops
+run `add` again to update a description, or `lsops remove gh` to remove an entry.
+registered commands stay in the list when unavailable. availability means lsops
 found an executable, not that the command is authenticated or its service works.
 
-For an executable outside PATH, pass a literal absolute path:
+for an executable outside PATH, pass a literal absolute path:
 
 ```sh
-lsops add acme "Query internal analytics" --path /opt/acme/bin/acme
+lsops add acme "query internal analytics" --path /opt/acme/bin/acme
 ```
 
 `acme` and its path are fictional examples.
 
 ```sh
-lsops web                  # Filter names and descriptions
-lsops --json               # Print the catalogue as JSON
-lsops --paths              # Include resolved executable paths
-lsops --limit 20           # Cap results and report omissions
-lsops discover             # Scan PATH without running commands or registering them
-lsops config               # Print the selected config path
+lsops web                  # filter names and descriptions
+lsops --json               # print the catalogue as json
+lsops --paths              # include resolved executable paths
+lsops --limit 20           # cap results and report omissions
+lsops discover             # scan PATH without running commands or registering them
+lsops config               # print the selected config path
 ```
 
-Use `--config FILE` or `LSOPS_CONFIG` to select another catalogue. The
+use `--config FILE` or `LSOPS_CONFIG` to select another catalogue. the
 [command reference](docs/usage.md) covers configuration, output formats, and
 discovery.
 
-## Connect an agent
+## connect an agent
 
-Hooks support Claude Code, Codex CLI, Gemini CLI, Cursor, GitHub Copilot CLI, and
-OpenCode. For Claude Code:
+hooks support claude code, codex cli, gemini cli, cursor, github copilot cli, and
+opencode. for claude code:
 
 ```sh
 lsops hook preview claude --mode output
@@ -76,25 +76,25 @@ lsops hook install claude --mode output
 lsops hook status claude
 ```
 
-Replace `claude` with `codex`, `gemini`, `cursor`, `copilot`, or `opencode` for
-another agent. User scope is the default. Add `--scope project` to configure
+replace `claude` with `codex`, `gemini`, `cursor`, `copilot`, or `opencode` for
+another agent. user scope is the default. add `--scope project` to configure
 only the current project.
 
-`output` mode injects the current catalogue. The default `instructions` mode
-tells the agent how to request it. Each hook invocation reads the catalogue
-again, so edits take effect at the next supported event. Refresh timing varies
-by agent, especially after compaction. See [refresh behavior and
+`output` mode injects the current catalogue. the default `instructions` mode
+tells the agent how to request it. each hook invocation reads the catalogue
+again, so edits take effect at the next supported event. refresh timing varies
+by agent, especially after compaction. see [refresh behavior and
 limits](docs/agents.md#refresh-behavior).
 
-Hook installation preserves unrelated settings and backs up files before
-changing them. You still need to approve or trust hooks where the agent requires
-it. To remove the integration:
+hook installation preserves unrelated settings and backs up files before
+changing them. you still need to approve or trust hooks where the agent requires
+it. to remove the integration:
 
 ```sh
 lsops hook uninstall claude
 ```
 
-## Development
+## development
 
 ```sh
 go test -count=1 ./...
@@ -102,8 +102,8 @@ go vet ./...
 go build -trimpath -buildvcs=false -o lsops .
 ```
 
-The OpenCode plugin tests also need Node.js 24. See [contributing](CONTRIBUTING.md)
+the opencode plugin tests also need node.js 24. see [contributing](CONTRIBUTING.md)
 for the full checks, [validation](VALIDATION.md) for platform limits, and the
 [release runbook](docs/release-runbook.md) for packaging.
 
-Licensed under [MIT](LICENSE).
+licensed under [mit](LICENSE).
