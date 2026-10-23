@@ -40,11 +40,17 @@ func TestGuidanceRoundTripAndRendering(t *testing.T) {
 	if out := run("--json"); strings.Contains(out, "\"why\"") || strings.Contains(out, "\"when\"") {
 		t.Fatal(out)
 	}
+	run("add", "example", "Literal guidance", "--why=--literal", "--when=--literal")
+	if out := run("--json"); !strings.Contains(out, "--literal") {
+		t.Fatal(out)
+	}
 	before, _ := os.ReadFile(path)
 	for _, args := range [][]string{
 		{"add", "example", "Rejected", "--why", strings.Repeat("x", 241)},
 		{"add", "example", "Rejected", "--when", "bad\x1btext"},
 		{"add", "example", "Rejected", "--when"},
+		{"add", "example", "Rejected", "--why", "--when=Reviewing"},
+		{"add", "example", "Rejected", "--when", "--path=/tmp/example"},
 	} {
 		code, _, _ := invoke(append([]string{"--config", path}, args...)...)
 		if code == 0 {

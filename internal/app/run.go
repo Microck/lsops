@@ -140,7 +140,7 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 			flag, value, inline := strings.Cut(arg, "=")
 			if !inline {
 				i++
-				if i >= len(args) {
+				if i >= len(args) || strings.HasPrefix(args[i], "--") {
 					return fail(stderr, flag+" requires text (use "+flag+"= to clear)", 2)
 				}
 				value = args[i]
