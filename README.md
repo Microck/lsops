@@ -108,6 +108,23 @@ for the full checks, [validation](VALIDATION.md) for platform limits, and the
 
 licensed under [mit](LICENSE).
 
+## automatic catalogue output
+
+install with `--mode output` to have the hook run lsops and inject its output
+automatically, without asking the agent to run a command:
+
+```sh
+lsops hook install claude --mode output
+```
+
+use the corresponding harness name for another agent. every supported hook event
+rereads the local catalogue, including descriptions and optional why/when
+guidance below. editing an entry does not require reinstalling the hook. this is
+event-driven refresh, not background polling: it does not discover or register
+new tools, write descriptions, or guarantee refresh after every compaction.
+the default remains `instructions` mode; rerun install with `--mode output` to
+replace an existing managed instructions-mode hook.
+
 ## what, why and when
 
 the description explains **what** a tool does. optionally add **why** it is useful
