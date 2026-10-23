@@ -24,6 +24,7 @@ type Options struct {
 	CodexHome    string
 	CopilotHome  string
 	OpenCodeHome string
+	OMPHome      string
 	Limit        int
 }
 
@@ -53,6 +54,7 @@ func Targets() []Target {
 		{Name: "cursor", Label: "Cursor", Refresh: "Session start", Notes: []string{"Startup only; Cursor has no supported post-compaction refresh for this integration."}},
 		{Name: "codex", Label: "Codex", Refresh: "Session start, resume, clear, compact, and fork", Notes: []string{"Review and trust a new or changed hook in /hooks; project hooks also require project trust. Installation does not approve a hook."}},
 		{Name: "copilot", Label: "GitHub Copilot CLI", Refresh: "Session start", Notes: []string{"Startup only; no post-compaction context hook is installed."}},
+		{Name: "omp", Label: "oh-my-pi (OMP)", Refresh: "Before every agent model request", Notes: []string{"Uses the ExtensionAPI context hook. Restart or reload OMP after installation; disabled extensions and project trust are preserved."}},
 		{Name: "opencode", Label: "OpenCode", Refresh: "Before every agent model request", Notes: []string{"Requires OpenCode 1.18.29+ or V2."}},
 	}
 }
@@ -91,8 +93,8 @@ func Status(target string, options Options) (Result, error) {
 	if err != nil {
 		return result, err
 	}
-	if target == "opencode" {
-		result.Installed = isManagedPlugin(data)
+	if target == "opencode" || target == "omp" {
+		result.Installed = isManagedPluginFor(target, data)
 		if !result.Installed {
 			result.Notes = append(result.Notes, "A file exists at the plugin path, but it is not managed by lsops.")
 		}
@@ -120,8 +122,8 @@ func Preview(target string, options Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if target == "opencode" {
-		return openCodeContent(options)
+	if target == "opencode" || target == "omp" {
+		return pluginContent(target, options)
 	}
 	document := make(map[string]any)
 	if _, err := mergeHooks(target, document, options, true); err != nil {
@@ -153,12 +155,12 @@ func change(target string, options Options, install bool) (Result, error) {
 		return result, nil
 	}
 	var updated []byte
-	if target == "opencode" {
-		if existed && !isManagedPlugin(original) {
+	if target == "opencode" || target == "omp" {
+		if existed && !isManagedPluginFor(target, original) {
 			return result, fmt.Errorf("refusing to replace or remove %q: it is not an lsops-managed plugin; existing file is unchanged", path)
 		}
 		if install {
-			updated, err = openCodeContent(options)
+			updated, err = pluginContent(target, options)
 			if err != nil {
 				return result, err
 			}
@@ -189,7 +191,7 @@ func change(target string, options Options, install bool) (Result, error) {
 			return result, err
 		}
 	}
-	backup, err := replaceManagedFile(path, original, updated, existed, target == "opencode" && !install)
+	backup, err := replaceManagedFile(path, original, updated, existed, (target == "opencode" || target == "omp") && !install)
 	if err != nil {
 		return result, err
 	}
@@ -207,7 +209,7 @@ func targetDefinition(name string) (Target, error) {
 			return target, nil
 		}
 	}
-	return Target{}, fmt.Errorf("unsupported agent %q; choose claude, gemini, cursor, codex, copilot, or opencode", name)
+	return Target{}, fmt.Errorf("unsupported agent %q; choose claude, gemini, cursor, codex, copilot, omp, or opencode", name)
 }
 
 func initialResult(target Target, path string) Result {
@@ -217,4 +219,18 @@ func initialResult(target Target, path string) Result {
 func isManagedPlugin(data []byte) bool {
 	first, _, _ := strings.Cut(string(data), "\n")
 	return strings.TrimSuffix(first, "\r") == openCodeMarker
+}
+
+func pluginContent(target string, options Options) ([]byte, error) {
+	if target == "omp" {
+		return ompContent(options)
+	}
+	return openCodeContent(options)
+}
+func isManagedPluginFor(target string, data []byte) bool {
+	if target != "omp" {
+		return isManagedPlugin(data)
+	}
+	first, _, _ := strings.Cut(string(data), "\n")
+	return strings.TrimSuffix(first, "\r") == ompMarker
 }

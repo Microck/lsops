@@ -123,9 +123,10 @@ lsops hook install gemini --mode output
 lsops hook install cursor --mode output
 lsops hook install copilot --mode output
 lsops hook install opencode --mode output
+lsops hook install omp --mode output
 ```
 
-Or configure all six in one command:
+Or configure all seven in one command:
 
 ```sh
 lsops hook install all --mode output
@@ -158,6 +159,7 @@ limit, config location, or binary location.
 | Gemini CLI | Session start and every submitted user turn. No immediate mid-turn post-compaction refresh is promised. |
 | Cursor | Asynchronous session-start context. No documented immediate post-compaction injection. |
 | GitHub Copilot CLI | Session-start context. No documented immediate post-compaction injection. |
+| OMP | Before every model request; uses the active session cwd and replaces only its own outgoing context. |
 | OpenCode | Before each model request, including continuation after compaction; V2 and V1 1.18.29+ plugin formats. |
 
 The installer reports each target's actual coverage. It does not change a

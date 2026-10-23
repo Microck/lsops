@@ -67,7 +67,7 @@ func normalizeOptions(options Options, needsCommand bool) (Options, error) {
 		value *string
 	}{
 		{"Claude home", &options.ClaudeHome}, {"Codex home", &options.CodexHome},
-		{"Copilot home", &options.CopilotHome}, {"OpenCode home", &options.OpenCodeHome},
+		{"OMP home", &options.OMPHome}, {"Copilot home", &options.CopilotHome}, {"OpenCode home", &options.OpenCodeHome},
 	} {
 		if *field.value != "" {
 			*field.value, err = absoluteLocalPath(*field.value, field.name)
@@ -161,6 +161,9 @@ func windowsAbsolute(path string) bool {
 }
 
 func destination(target string, options Options) (string, error) {
+	if target == "omp" {
+		return ompPath(options)
+	}
 	if target == "opencode" {
 		return openCodePath(options)
 	}
