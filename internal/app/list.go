@@ -51,6 +51,7 @@ type summary struct {
 }
 
 type inventory struct {
+	ProjectConfig string   `json:"project_config,omitempty"`
 	SchemaVersion int      `json:"schema_version"`
 	Version       string   `json:"lsops_version"`
 	Mode          string   `json:"mode"`
@@ -64,7 +65,18 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 	if err != nil {
 		return fail(stderr, err.Error(), 1)
 	}
-	result := inventory{SchemaVersion: 2, Version: version, Mode: "curated", Tools: []tool{}, Warnings: []string{}}
+	var projectPath string
+	if len(cfg.Projects) > 0 {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fail(stderr, "find project directory: "+err.Error(), 1)
+		}
+		cfg, projectPath, err = config.ForDirectory(cfg, cwd)
+		if err != nil {
+			return fail(stderr, err.Error(), 1)
+		}
+	}
+	result := inventory{ProjectConfig: projectPath, SchemaVersion: 2, Version: version, Mode: "curated", Tools: []tool{}, Warnings: []string{}}
 	configNames := make([]string, 0, len(cfg.Tools))
 	for name := range cfg.Tools {
 		configNames = append(configNames, name)

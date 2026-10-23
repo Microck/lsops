@@ -141,3 +141,11 @@ limited to 240 characters; keep it concrete and include important limits.
 omitted flags preserve existing guidance; `--why=` or `--when=` clears it.
 existing description-only configs still work. guidance is user-authored context,
 not permission to bypass an agent's trust or approval rules.
+
+## project-specific catalogues
+
+create a .lsops.json catalogue in your project, then explicitly enable it with
+`lsops project add .`. the nearest registered project overlays your base catalogue
+when lsops or an output hook runs inside it. local records can add, replace or hide
+tools. unregistered project files are never loaded. see the [setup, trust and
+refresh guide](docs/projects.md).

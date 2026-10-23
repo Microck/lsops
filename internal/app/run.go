@@ -72,6 +72,8 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 	pos := fs.Args()
 	if len(pos) > 0 {
 		switch pos[0] {
+		case "project":
+			return projectCommand(pos[1:], opts, stdout, stderr)
 		case "add", "describe":
 			return addCommand(pos[1:], opts, stdout, stderr)
 		case "remove", "forget":
@@ -211,6 +213,8 @@ func writeUsage(w io.Writer) {
 
 Usage:
   lsops [options] [filter ...]
+  lsops project add|remove DIRECTORY
+  lsops project list
   lsops add NAME "description" [--path /absolute/executable] [--why TEXT] [--when TEXT]
   lsops remove NAME
   lsops discover [options] [filter ...]
