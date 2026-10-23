@@ -70,7 +70,7 @@ edited by lsops.
 | Gemini CLI | `SessionStart` and `BeforeAgent` | Refreshes on the next submitted user turn. No immediate mid-turn post-compaction guarantee. |
 | Cursor | `sessionStart` | Startup only; this is asynchronous, so injection before the very first request is not guaranteed. |
 | GitHub Copilot CLI | `sessionStart` | Startup only; no documented post-compaction context event. |
-| oh-my-pi (OMP) | ExtensionAPI `context` | Re-renders before each model request; the next context pass after compaction receives the current catalogue. |
+| oh-my-pi (OMP) | `session_start`, `session_switch`, `session_branch`, `session_tree`, `session_compact` | Adds a fresh catalogue on the post-compaction event, not on ordinary model requests. |
 | OpenCode | V2 `context`; V1 `experimental.chat.system.transform` | Fresh context is added to each outgoing model request, including the first continuation after compaction. |
 
 `PreCompact`/`PreCompress` notifications are not installed as pretend
