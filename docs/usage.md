@@ -258,3 +258,25 @@ Go 1.23+; no third-party modules. See [Validation](../VALIDATION.md) for checks 
 platform limits. `SHA256SUMS` covers the five bundled binaries.
 
 [MIT license](../LICENSE).
+
+## optional tool guidance
+
+`description` is the tool's **what**. Version-1 tool records also accept optional
+`why` (advantage over alternatives) and `when` (selection criteria and limits)
+strings. These are curated text, never executable commands.
+
+Use `lsops add NAME "description" --why "reason" --when "situation"`.
+Both space-separated and equals syntax work before or after the positional pair;
+`--` stops option parsing. Omitted guidance is preserved on updates. Explicit
+empty values (`--why=`, `--when=`) remove the corresponding guidance.
+
+Each field uses the description validation rules: valid UTF-8, at most 240
+characters, normalized whitespace, no forbidden control characters. Invalid
+updates leave the file unchanged. Legacy records and JSON schema version 2 are
+retained; optional JSON fields are omitted when empty. Older lsops binaries that
+reject unknown config fields cannot read configs containing the new fields.
+
+Text and output-mode hook renders include labeled why/when lines; names-only
+output stays names-only. JSON exposes `why` and `when`; filters search both.
+Instruction-mode hooks still request the live list rather than embedding it.
+Discovery uses guidance only from explicit config overrides, never guesses it.

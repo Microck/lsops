@@ -127,12 +127,29 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 	// Accept --path before or after the positional pair. Never interpret the
 	// description as shell code, or execute a registered command.
 	var executablePath string
+	var why, when *string
 	var pos []string
 	literal := false
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if !literal && arg == "--" {
 			literal = true
+			continue
+		}
+		if !literal && (arg == "--why" || arg == "--when" || strings.HasPrefix(arg, "--why=") || strings.HasPrefix(arg, "--when=")) {
+			flag, value, inline := strings.Cut(arg, "=")
+			if !inline {
+				i++
+				if i >= len(args) || strings.HasPrefix(args[i], "--") {
+					return fail(stderr, flag+" requires text (use "+flag+"= to clear)", 2)
+				}
+				value = args[i]
+			}
+			if flag == "--why" {
+				why = &value
+			} else {
+				when = &value
+			}
 			continue
 		}
 		if !literal && (arg == "--path" || strings.HasPrefix(arg, "--path=")) {
@@ -156,9 +173,9 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 		pos = append(pos, arg)
 	}
 	if len(pos) < 2 {
-		return fail(stderr, "usage: lsops add NAME \"description\" [--path /absolute/executable]", 2)
+		return fail(stderr, "usage: lsops add NAME \"description\" [--path /absolute/executable] [--why TEXT] [--when TEXT]", 2)
 	}
-	if err := config.SetTool(opts.configPath, pos[0], strings.Join(pos[1:], " "), executablePath); err != nil {
+	if err := config.SetToolGuidance(opts.configPath, pos[0], strings.Join(pos[1:], " "), executablePath, why, when); err != nil {
 		return fail(stderr, err.Error(), 1)
 	}
 	fmt.Fprintf(stdout, "Saved %s. Live hooks will use the updated list on their next invocation.\n", displayName(pos[0]))
@@ -194,7 +211,7 @@ func writeUsage(w io.Writer) {
 
 Usage:
   lsops [options] [filter ...]
-  lsops add NAME "description" [--path /absolute/executable]
+  lsops add NAME "description" [--path /absolute/executable] [--why TEXT] [--when TEXT]
   lsops remove NAME
   lsops discover [options] [filter ...]
   lsops config [example]
@@ -230,7 +247,7 @@ Examples:
   lsops hook install claude --mode output
 
 Global options go before subcommands; list/discover also accept their options
-immediately after the subcommand. Filters match names or descriptions.
+immediately after the subcommand. Filters match names, descriptions, why or when guidance.
 Use lsops list FILTER for reserved command names. describe/forget remain aliases
 for add/remove. Inventory discovery never executes the registered tools.
 `)

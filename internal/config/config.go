@@ -29,6 +29,8 @@ const (
 // never a command for lsops to execute.
 type Tool struct {
 	Description string `json:"description,omitempty"`
+	Why         string `json:"why,omitempty"`
+	When        string `json:"when,omitempty"`
 	Path        string `json:"path,omitempty"`
 	Help        string `json:"help,omitempty"`
 	Hide        bool   `json:"hide,omitempty"`
@@ -140,6 +142,12 @@ func Load(path string) (Config, error) {
 		if err != nil {
 			return Config{}, fmt.Errorf("tool %q in config %q: %w", name, path, err)
 		}
+		for label, field := range map[string]*string{"why": &tool.Why, "when": &tool.When} {
+			*field, err = normalizeText(*field, label, maxDescriptionLength)
+			if err != nil {
+				return Config{}, fmt.Errorf("tool %q in config %q: %w", name, path, err)
+			}
+		}
 		tool.Help, err = normalizeText(tool.Help, "help", maxHelpLength)
 		if err != nil {
 			return Config{}, fmt.Errorf("tool %q in config %q: %w", name, path, err)
@@ -234,6 +242,12 @@ func absoluteExecutablePath(path string) bool {
 // Existing help/visibility settings and other records are retained. No PATH
 // lookup, existence check, or executable invocation is performed.
 func SetTool(path, name, description, executablePath string) error {
+	return SetToolGuidance(path, name, description, executablePath, nil, nil)
+}
+
+// SetToolGuidance updates optional guidance atomically with the description.
+// Nil preserves an existing field; a pointer to an empty string clears it.
+func SetToolGuidance(path, name, description, executablePath string, why, when *string) error {
 	if err := validateName(name); err != nil {
 		return err
 	}
@@ -257,6 +271,20 @@ func SetTool(path, name, description, executablePath string) error {
 	name = existingName(cfg.Tools, name, runtime.GOOS)
 	tool, exists := cfg.Tools[name]
 	previous := tool
+	for label, update := range map[string]struct {
+		value  *string
+		target *string
+	}{
+		"why": {why, &tool.Why}, "when": {when, &tool.When},
+	} {
+		if update.value != nil {
+			value, err := normalizeText(*update.value, label, maxDescriptionLength)
+			if err != nil {
+				return err
+			}
+			*update.target = value
+		}
+	}
 	tool.Description = description
 	if executablePath != "" {
 		tool.Path = executablePath
