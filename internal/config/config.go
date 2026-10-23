@@ -39,8 +39,9 @@ type Tool struct {
 
 // Config is the versioned JSON override file.
 type Config struct {
-	Version int             `json:"version"`
-	Tools   map[string]Tool `json:"tools"`
+	Projects []string        `json:"projects,omitempty"`
+	Version  int             `json:"version"`
+	Tools    map[string]Tool `json:"tools"`
 }
 
 // DefaultPath returns the user configuration path. An explicit XDG_CONFIG_HOME
@@ -98,8 +99,9 @@ func Load(path string) (Config, error) {
 	// RawMessage distinguishes an absent version (allowed) from an explicit
 	// zero or null (unsupported), without relaxing unknown-field checking.
 	var disk *struct {
-		Version json.RawMessage `json:"version"`
-		Tools   map[string]Tool `json:"tools"`
+		Projects []string        `json:"projects,omitempty"`
+		Version  json.RawMessage `json:"version"`
+		Tools    map[string]Tool `json:"tools"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
@@ -124,6 +126,12 @@ func Load(path string) (Config, error) {
 	}
 
 	cfg := emptyConfig()
+	for _, root := range disk.Projects {
+		if err := singleLine(root); err != nil || !filepath.IsAbs(root) || filepath.Clean(root) != root {
+			return Config{}, fmt.Errorf("project root %q must be a clean absolute path", root)
+		}
+		cfg.Projects = append(cfg.Projects, root)
+	}
 	// Stable ordering gives deterministic errors when several entries are bad.
 	names := make([]string, 0, len(disk.Tools))
 	for name := range disk.Tools {
