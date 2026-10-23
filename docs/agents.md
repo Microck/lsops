@@ -176,14 +176,19 @@ lsops hook preview omp --mode output
 lsops hook uninstall omp
 ```
 
-The generated extension uses the current ExtensionAPI `context` event, not the
-legacy HookRunner. It invokes the pinned lsops executable with literal argv and
-`ctx.cwd` before each model request. Only its own `lsops.catalogue` custom message
-is replaced in the outgoing context copy; user messages and other extensions are
-preserved, and nothing is appended to the persisted session. An invalid directory
-or failed refresh removes any old lsops context rather than replaying stale tools.
-What/why/when guidance, `--limit`, and explicitly registered project overlays use
-the same live renderer as other integrations. No registered CLI is executed.
+The generated extension uses ExtensionAPI session lifecycle events, not the
+per-model `context` hook. It renders once at session start/resume, session
+switch/branch/tree navigation, and after compaction. Each event appends one hidden
+`lsops.catalogue` message to session history without requesting an extra turn.
+Ordinary model calls, tool continuations, and model changes do not run lsops or
+append/reposition its output. Existing history and other extensions are untouched.
+
+The pinned lsops executable receives literal argv and the active `ctx.cwd`.
+What/why/when guidance, `--limit`, and registered project overlays use the live
+renderer. Edits are picked up at the next lifecycle refresh, not every model call.
+Invalid directories and failed renders add no message; an earlier catalogue may
+remain in history until normal compaction. In-flight results are discarded after
+a newer lifecycle event or shutdown. No registered CLI is executed.
 
 User scope honors `PI_CODING_AGENT_DIR` first, otherwise `PI_CONFIG_DIR/agent`,
 otherwise `~/.omp/agent`. For a named profile, target its actual agent directory
