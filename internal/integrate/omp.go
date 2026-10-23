@@ -70,7 +70,7 @@ export default function lsops(pi) {
   async function refresh(_event, ctx) {
     const current = ++generation;
     const cwd = ctx?.cwd;
-    if (typeof cwd !== "string" || !isAbsolute(cwd) || cwd.includes("\\0")) return;
+    if (typeof cwd !== "string" || !isAbsolute(cwd) || cwd.includes("\0")) return;
     const text = await renderContext(cwd);
     // Never deliver an old project's result after a session switch or shutdown.
     if (current !== generation || !text) return;

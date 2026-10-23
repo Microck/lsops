@@ -102,6 +102,7 @@ assert.equal(sent.length,5);assert.equal(calls[0].options.cwd,home.cwd);assert.e
 assert.equal(calls[0].options.shell,false);assert.equal(calls[0].options.timeout,10000);assert.equal(calls[0].options.maxBuffer,262144);assert.equal(calls[0].args[calls[0].args.indexOf("--harness")+1],"omp");assert.equal(calls[0].args[calls[0].args.indexOf("--mode")+1],"output");assert.equal(calls[0].args[calls[0].args.indexOf("--limit")+1],"7");
 fail=true;await handlers.get("session_compact")({},home);assert.equal(sent.length,5);assert.equal(warnings.length,1);assert(!warnings[0].includes("PRIVATE"));fail=false;
 const count=calls.length;await handlers.get("session_switch")({},{cwd:"relative"});assert.equal(calls.length,count);assert.equal(sent.length,5);
+await handlers.get("session_switch")({},{cwd:home.cwd+"\0bad"});assert.equal(calls.length,count);assert.equal(sent.length,5);
 defer=true;const old=handlers.get("session_start")({},home);const fresh=handlers.get("session_switch")({},project);pending.shift()();await old;assert.equal(sent.length,5);pending.shift()();await fresh;assert.equal(sent.length,6);
 const dying=handlers.get("session_compact")({},project);handlers.get("session_shutdown")();pending.shift()();await dying;assert.equal(sent.length,6);
 console.log("PASS");`
