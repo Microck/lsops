@@ -1,3 +1,10 @@
+# lsops 0.4.1
+
+- Fix OMP injection timing: session start/resume, navigation and post-compaction
+  only. No subprocess or catalogue injection on ordinary model/tool turns.
+- Reinstall with `lsops hook install omp --mode output`, then restart/reload OMP;
+  updating the binary alone does not replace an already installed extension.
+
 # lsops 0.4.0
 
 - Add oh-my-pi (OMP) live context integration: `lsops hook install omp --mode output`.

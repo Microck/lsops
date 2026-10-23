@@ -41,7 +41,7 @@ func ompContent(opts Options) ([]byte, error) {
 }
 
 const ompTemplate = `%s
-// OMP ExtensionAPI context hook. Reinstall with lsops to change settings.
+// OMP ExtensionAPI session lifecycle hook. Reinstall with lsops to change settings.
 import { execFile } from "node:child_process";
 import { isAbsolute } from "node:path";
 
@@ -66,18 +66,21 @@ function renderContext(cwd) {
 }
 
 export default function lsops(pi) {
-  pi.on("context", async (event, ctx) => {
-    // Transform only the outgoing context copy. Never persist or duplicate it.
-    const messages = event.messages.filter((message) =>
-      !(message.role === "custom" && message.customType === customType));
+  let generation = 0;
+  async function refresh(_event, ctx) {
+    const current = ++generation;
     const cwd = ctx?.cwd;
-    if (typeof cwd !== "string" || !isAbsolute(cwd) || cwd.includes("\0")) {
-      return { messages };
-    }
+    if (typeof cwd !== "string" || !isAbsolute(cwd) || cwd.includes("\0")) return;
     const text = await renderContext(cwd);
-    if (text) messages.push({ role: "custom", customType, content: text,
-      display: false, timestamp: Date.now() });
-    return { messages };
-  });
+    // Never deliver an old project's result after a session switch or shutdown.
+    if (current !== generation || !text) return;
+    pi.sendMessage({ customType, content: text, display: false },
+      { triggerTurn: false });
+  }
+  // Persist one message at a lifecycle boundary. Ordinary model/tool turns do
+  // not render, append, replace, or relocate the catalogue.
+  for (const event of ["session_start", "session_switch", "session_branch",
+    "session_tree", "session_compact"]) pi.on(event, refresh);
+  pi.on("session_shutdown", () => { generation++; });
 }
 `

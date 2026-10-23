@@ -26,11 +26,12 @@ Historical upstream evidence is kept separately in
 [the supplied report](docs/validation-upstream.md).
 
 
-## OMP integration (unreleased)
+## OMP integration
 
 - Current upstream ExtensionAPI and native `.omp` discovery paths were inspected.
-- Generated-extension fixtures cover refresh, independent session cwd, duplicate
-  removal, preservation of other messages, failure redaction and invalid cwd.
+- Generated-extension fixtures cover lifecycle-only injection, zero per-model/tool
+  refreshes, independent session cwd, failure redaction, invalid cwd, and cancellation
+  of stale asynchronous results after navigation/shutdown.
 - Temporary user/project/custom-profile installs cover idempotence, backups,
   status, foreign files and symlink refusal.
 - A real built lsops subprocess verified what/why/when, project overlays, a live

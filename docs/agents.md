@@ -70,7 +70,7 @@ edited by lsops.
 | Gemini CLI | `SessionStart` and `BeforeAgent` | Refreshes on the next submitted user turn. No immediate mid-turn post-compaction guarantee. |
 | Cursor | `sessionStart` | Startup only; this is asynchronous, so injection before the very first request is not guaranteed. |
 | GitHub Copilot CLI | `sessionStart` | Startup only; no documented post-compaction context event. |
-| oh-my-pi (OMP) | ExtensionAPI `context` | Re-renders before each model request; the next context pass after compaction receives the current catalogue. |
+| oh-my-pi (OMP) | `session_start`, `session_switch`, `session_branch`, `session_tree`, `session_compact` | Adds a fresh catalogue on the post-compaction event, not on ordinary model requests. |
 | OpenCode | V2 `context`; V1 `experimental.chat.system.transform` | Fresh context is added to each outgoing model request, including the first continuation after compaction. |
 
 `PreCompact`/`PreCompress` notifications are not installed as pretend
@@ -176,14 +176,19 @@ lsops hook preview omp --mode output
 lsops hook uninstall omp
 ```
 
-The generated extension uses the current ExtensionAPI `context` event, not the
-legacy HookRunner. It invokes the pinned lsops executable with literal argv and
-`ctx.cwd` before each model request. Only its own `lsops.catalogue` custom message
-is replaced in the outgoing context copy; user messages and other extensions are
-preserved, and nothing is appended to the persisted session. An invalid directory
-or failed refresh removes any old lsops context rather than replaying stale tools.
-What/why/when guidance, `--limit`, and explicitly registered project overlays use
-the same live renderer as other integrations. No registered CLI is executed.
+The generated extension uses ExtensionAPI session lifecycle events, not the
+per-model `context` hook. It renders once at session start/resume, session
+switch/branch/tree navigation, and after compaction. Each event appends one hidden
+`lsops.catalogue` message to session history without requesting an extra turn.
+Ordinary model calls, tool continuations, and model changes do not run lsops or
+append/reposition its output. Existing history and other extensions are untouched.
+
+The pinned lsops executable receives literal argv and the active `ctx.cwd`.
+What/why/when guidance, `--limit`, and registered project overlays use the live
+renderer. Edits are picked up at the next lifecycle refresh, not every model call.
+Invalid directories and failed renders add no message; an earlier catalogue may
+remain in history until normal compaction. In-flight results are discarded after
+a newer lifecycle event or shutdown. No registered CLI is executed.
 
 User scope honors `PI_CODING_AGENT_DIR` first, otherwise `PI_CONFIG_DIR/agent`,
 otherwise `~/.omp/agent`. For a named profile, target its actual agent directory

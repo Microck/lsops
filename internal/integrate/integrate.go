@@ -54,7 +54,7 @@ func Targets() []Target {
 		{Name: "cursor", Label: "Cursor", Refresh: "Session start", Notes: []string{"Startup only; Cursor has no supported post-compaction refresh for this integration."}},
 		{Name: "codex", Label: "Codex", Refresh: "Session start, resume, clear, compact, and fork", Notes: []string{"Review and trust a new or changed hook in /hooks; project hooks also require project trust. Installation does not approve a hook."}},
 		{Name: "copilot", Label: "GitHub Copilot CLI", Refresh: "Session start", Notes: []string{"Startup only; no post-compaction context hook is installed."}},
-		{Name: "omp", Label: "oh-my-pi (OMP)", Refresh: "Before every agent model request", Notes: []string{"Uses the ExtensionAPI context hook. Restart or reload OMP after installation; disabled extensions and project trust are preserved."}},
+		{Name: "omp", Label: "oh-my-pi (OMP)", Refresh: "At session start/resume, session switch/branch/tree navigation, and after compaction", Notes: []string{"Uses ExtensionAPI session lifecycle events, not a per-model context hook. Restart or reload OMP after installation; disabled extensions and project trust are preserved."}},
 		{Name: "opencode", Label: "OpenCode", Refresh: "Before every agent model request", Notes: []string{"Requires OpenCode 1.18.29+ or V2."}},
 	}
 }

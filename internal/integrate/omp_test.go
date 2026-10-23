@@ -64,7 +64,7 @@ func TestOMPPathsAndLifecycle(t *testing.T) {
 	}
 }
 
-func TestOMPContextRefreshAndIsolation(t *testing.T) {
+func TestOMPLifecycleTimingAndIsolation(t *testing.T) {
 	node := openCodeNode(t)
 	root := t.TempDir()
 	opts := testOptions(t)
@@ -82,19 +82,29 @@ func TestOMPContextRefreshAndIsolation(t *testing.T) {
 import cp from "node:child_process";
 import {syncBuiltinESMExports} from "node:module";
 import {pathToFileURL} from "node:url";
-const calls=[];const warnings=[];let generation=1;let fail=false;
-cp.execFile=(executable,args,options,callback)=>{calls.push({executable,args,options});queueMicrotask(()=>callback(fail?new Error("PRIVATE STDERR"):null,fail?"PRIVATE PARTIAL":"catalog "+generation));return {};};
+const calls=[];const warnings=[];const pending=[];let generation=1;let fail=false;let defer=false;
+cp.execFile=(executable,args,options,callback)=>{calls.push({executable,args,options});const done=()=>callback(fail?new Error("PRIVATE STDERR"):null,fail?"PRIVATE PARTIAL":"catalog "+generation);if(defer)pending.push(done);else queueMicrotask(done);return {};};
 syncBuiltinESMExports();console.warn=x=>warnings.push(x);
-const {default:factory}=await import(pathToFileURL(process.argv[2]).href);let context;
-factory({on(name,handler){assert.equal(name,"context");context=handler;}});assert.equal(calls.length,0);
-const keep={role:"user",content:"keep"};const other={role:"custom",customType:"foreign",content:"leave alone"};
-const old={role:"custom",customType:"lsops.catalogue",content:"old inventory"};
-const event={messages:[keep,other,old]};
-let result=await context(event,{cwd:process.argv[3]});assert.deepEqual(event.messages,[keep,other,old]);assert.equal(result.messages.length,3);assert.equal(result.messages[0],keep);assert.equal(result.messages[1],other);assert.equal(result.messages[2].content,"catalog 1");assert.equal(result.messages[2].display,false);
-generation=2;result=await context({messages:result.messages},{cwd:process.argv[4]});assert.equal(result.messages.length,3);assert.equal(result.messages[2].content,"catalog 2");assert.equal(calls[0].options.cwd,process.argv[3]);assert.equal(calls[1].options.cwd,process.argv[4]);
+const {default:factory}=await import(pathToFileURL(process.argv[2]).href);
+const handlers=new Map();const sent=[];
+factory({on(name,handler){assert(!handlers.has(name));handlers.set(name,handler);},sendMessage(message,options){sent.push({message,options});}});
+assert.deepEqual([...handlers.keys()],["session_start","session_switch","session_branch","session_tree","session_compact","session_shutdown"]);
+assert.equal(calls.length,0);
+assert(!handlers.has("context"));assert(!handlers.has("before_agent_start"));assert(!handlers.has("model_select"));
+const home={cwd:process.argv[3]},project={cwd:process.argv[4]};
+await handlers.get("session_start")({},home);assert.equal(sent.length,1);assert.equal(sent[0].message.content,"catalog 1");assert.equal(sent[0].message.display,false);assert.equal(sent[0].message.customType,"lsops.catalogue");assert.deepEqual(sent[0].options,{triggerTurn:false});
+// Model and tool continuations cannot call lsops or inject another message.
+for(let i=0;i<20;i++)for(const event of ["context","turn_start","tool_result","before_agent_start","model_select"])await handlers.get(event)?.({},home);
+assert.equal(calls.length,1);assert.equal(sent.length,1);
+generation=2;await handlers.get("session_compact")({},home);assert.equal(sent.length,2);assert.equal(sent[1].message.content,"catalog 2");
+for(const event of ["session_switch","session_branch","session_tree"])await handlers.get(event)({},project);
+assert.equal(sent.length,5);assert.equal(calls[0].options.cwd,home.cwd);assert.equal(calls[2].options.cwd,project.cwd);
 assert.equal(calls[0].options.shell,false);assert.equal(calls[0].options.timeout,10000);assert.equal(calls[0].options.maxBuffer,262144);assert.equal(calls[0].args[calls[0].args.indexOf("--harness")+1],"omp");assert.equal(calls[0].args[calls[0].args.indexOf("--mode")+1],"output");assert.equal(calls[0].args[calls[0].args.indexOf("--limit")+1],"7");
-fail=true;result=await context({messages:result.messages},{cwd:process.argv[3]});assert.deepEqual(result.messages,[keep,other]);assert.equal(warnings.length,1);assert(!warnings[0].includes("PRIVATE"));
-const count=calls.length;result=await context(event,{cwd:"relative"});assert.deepEqual(result.messages,[keep,other]);assert.equal(calls.length,count);
+fail=true;await handlers.get("session_compact")({},home);assert.equal(sent.length,5);assert.equal(warnings.length,1);assert(!warnings[0].includes("PRIVATE"));fail=false;
+const count=calls.length;await handlers.get("session_switch")({},{cwd:"relative"});assert.equal(calls.length,count);assert.equal(sent.length,5);
+await handlers.get("session_switch")({},{cwd:home.cwd+"\0bad"});assert.equal(calls.length,count);assert.equal(sent.length,5);
+defer=true;const old=handlers.get("session_start")({},home);const fresh=handlers.get("session_switch")({},project);pending.shift()();await old;assert.equal(sent.length,5);pending.shift()();await fresh;assert.equal(sent.length,6);
+const dying=handlers.get("session_compact")({},project);handlers.get("session_shutdown")();pending.shift()();await dying;assert.equal(sent.length,6);
 console.log("PASS");`
 	output, diagnostic := openCodeRunNode(t, node, root, script, plugin, opts.Home, opts.ProjectDir)
 	if diagnostic != "" || string(bytes.TrimSpace(output)) != "PASS" {
@@ -129,4 +139,22 @@ func TestOMPRejectsSymlinkDestination(t *testing.T) {
 	if !bytes.Equal(after, original) {
 		t.Fatal("symlink target modified")
 	}
+}
+
+func TestOMPTargetMetadataDescribesLifecycle(t *testing.T) {
+	for _, target := range Targets() {
+		if target.Name != "omp" {
+			continue
+		}
+		for _, want := range []string{"session start/resume", "switch/branch/tree", "after compaction"} {
+			if !bytes.Contains([]byte(target.Refresh), []byte(want)) {
+				t.Fatalf("missing %q: %s", want, target.Refresh)
+			}
+		}
+		if !bytes.Contains([]byte(target.Notes[0]), []byte("not a per-model context hook")) {
+			t.Fatal(target.Notes)
+		}
+		return
+	}
+	t.Fatal("missing OMP target")
 }

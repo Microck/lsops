@@ -86,9 +86,9 @@ again, so edits take effect at the next supported event. refresh timing varies
 by agent, especially after compaction. see [refresh behavior and
 limits](docs/agents.md#refresh-behavior).
 
-for oh-my-pi, run `lsops hook install omp --mode output`. its context hook
-refreshes the catalogue before each model request, using the active session
-folder for project selection. restart or reload omp after installing.
+for oh-my-pi, run `lsops hook install omp --mode output`. its lifecycle hook
+refreshes at session start/resume and after compaction, not every model request.
+session switches/branches also refresh using the active folder. restart or reload omp after installing.
 
 hook installation preserves unrelated settings and backs up files before
 changing them. you still need to approve or trust hooks where the agent requires
