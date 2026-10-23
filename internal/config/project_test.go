@@ -149,7 +149,7 @@ func TestProjectReadRejectsReplacement(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"tools":{"safe":{"description":"original"}}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	expected, err := os.Lstat(path)
+	expected, err := projectFileInfo(path)
 	if err != nil {
 		t.Fatal(err)
 	}
