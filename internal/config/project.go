@@ -32,6 +32,16 @@ func SetProject(path, directory string, enable bool) error {
 		return err
 	}
 	if enable {
+		basePath, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+		if resolved, err := filepath.EvalSymlinks(basePath); err == nil {
+			basePath = resolved
+		}
+		if samePath(basePath, filepath.Join(root, ProjectFile)) {
+			return errors.New("base catalogue must differ from the project catalogue")
+		}
 		info, err := os.Stat(root)
 		if err != nil {
 			return err
