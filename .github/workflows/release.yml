@@ -58,7 +58,8 @@ jobs:
 
   publish:
     needs: [test, package]
-    if: github.event_name == 'push' && github.repository == 'Microck/lsops' && startsWith(github.event.head_commit.message, 'chore(release): prepare v0.3.0')
+    if: >-
+      github.event_name == 'push' && github.repository == 'Microck/lsops' && startsWith(github.event.head_commit.message, 'chore(release): prepare v0.3.0')
     permissions:
       contents: write
     runs-on: ubuntu-latest
