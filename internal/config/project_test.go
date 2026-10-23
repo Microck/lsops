@@ -125,3 +125,19 @@ func TestProjectInvalidAndSymlinkedCatalogues(t *testing.T) {
 		t.Fatalf("cwd symlink escaped root: %s %v", selected, err)
 	}
 }
+
+func TestProjectCannotRegisterItsOwnBase(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, ProjectFile)
+	if err := os.WriteFile(path, []byte(`{"tools":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.ReadFile(path)
+	if err := SetProject(path, root, true); err == nil {
+		t.Fatal("self-referencing base accepted")
+	}
+	after, _ := os.ReadFile(path)
+	if string(before) != string(after) {
+		t.Fatal("rejected registration changed file")
+	}
+}
