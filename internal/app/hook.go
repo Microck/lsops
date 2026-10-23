@@ -265,7 +265,11 @@ func integrationOptions(h hookOptions, needsExecutable bool) (integrate.Options,
 		ConfigPath: cfg, Home: home, ProjectDir: project,
 		Scope: h.scope, Mode: h.mode, GOOS: runtime.GOOS, Limit: h.limit,
 		ClaudeHome: os.Getenv("CLAUDE_CONFIG_DIR"), CodexHome: os.Getenv("CODEX_HOME"),
+		OMPHome:     os.Getenv("PI_CODING_AGENT_DIR"),
 		CopilotHome: os.Getenv("COPILOT_HOME"), OpenCodeHome: os.Getenv("OPENCODE_CONFIG_DIR"),
+	}
+	if root := os.Getenv("PI_CONFIG_DIR"); opts.OMPHome == "" && root != "" {
+		opts.OMPHome = root + string(os.PathSeparator) + "agent"
 	}
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); opts.OpenCodeHome == "" && xdg != "" {
 		// Preserve filesystem traversal through any symlink/.. components.
@@ -336,7 +340,7 @@ func renderHook(h hookOptions, stdout, stderr io.Writer, version string) int {
 		}
 		content = hookInstructions(executable, cfg, runtime.GOOS, h.limit)
 	}
-	if h.harness == "" || h.harness == "opencode" {
+	if h.harness == "" || h.harness == "opencode" || h.harness == "omp" {
 		return writeHookBytes(stdout, stderr, []byte(content))
 	}
 	var response any
@@ -370,7 +374,7 @@ func hookRenderEvent(harness, event string) (string, error) {
 		allowed = []string{"SessionStart", "BeforeAgent"}
 	case "cursor", "copilot":
 		allowed = []string{"sessionStart"}
-	case "opencode":
+	case "opencode", "omp":
 		allowed = []string{"context"}
 	default:
 		return "", fmt.Errorf("unsupported harness %q; use lsops hook targets", harness)

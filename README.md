@@ -68,7 +68,7 @@ discovery.
 ## connect an agent
 
 hooks support claude code, codex cli, gemini cli, cursor, github copilot cli, and
-opencode. for claude code:
+opencode and oh-my-pi (omp). for claude code:
 
 ```sh
 lsops hook preview claude --mode output
@@ -76,7 +76,7 @@ lsops hook install claude --mode output
 lsops hook status claude
 ```
 
-replace `claude` with `codex`, `gemini`, `cursor`, `copilot`, or `opencode` for
+replace `claude` with `codex`, `gemini`, `cursor`, `copilot`, `opencode`, or `omp` for
 another agent. user scope is the default. add `--scope project` to configure
 only the current project.
 
@@ -85,6 +85,10 @@ tells the agent how to request it. each hook invocation reads the catalogue
 again, so edits take effect at the next supported event. refresh timing varies
 by agent, especially after compaction. see [refresh behavior and
 limits](docs/agents.md#refresh-behavior).
+
+for oh-my-pi, run `lsops hook install omp --mode output`. its context hook
+refreshes the catalogue before each model request, using the active session
+folder for project selection. restart or reload omp after installing.
 
 hook installation preserves unrelated settings and backs up files before
 changing them. you still need to approve or trust hooks where the agent requires
@@ -102,7 +106,7 @@ go vet ./...
 go build -trimpath -buildvcs=false -o lsops .
 ```
 
-the opencode plugin tests also need node.js 24. see [contributing](CONTRIBUTING.md)
+the opencode and omp plugin tests also need node.js 24. see [contributing](CONTRIBUTING.md)
 for the full checks, [validation](VALIDATION.md) for platform limits, and the
 [release runbook](docs/release-runbook.md) for packaging.
 

@@ -26,6 +26,8 @@ func hookTestEnvironment(t *testing.T) (string, string) {
 	t.Setenv("CODEX_HOME", filepath.Join(root, "codex-home"))
 	t.Setenv("COPILOT_HOME", filepath.Join(root, "copilot-home"))
 	t.Setenv("OPENCODE_CONFIG_DIR", "")
+	t.Setenv("PI_CODING_AGENT_DIR", "")
+	t.Setenv("PI_CONFIG_DIR", "")
 	t.Setenv("LSOPS_CONFIG", cfg)
 	return root, cfg
 }
@@ -57,6 +59,7 @@ func TestHookRenderAdaptersContainExactCurrentList(t *testing.T) {
 		{"cursor", "sessionStart", "additional_context", false},
 		{"copilot", "sessionStart", "additionalContext", false},
 		{"opencode", "context", "", false},
+		{"omp", "context", "", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.harness+tc.event, func(t *testing.T) {
@@ -260,6 +263,8 @@ func TestHookOpenCodeHomePreservesFilesystemPathAndOverride(t *testing.T) {
 		t.Fatalf("OpenCode override lost precedence or literal path: %+v, %v", opts, err)
 	}
 	t.Setenv("OPENCODE_CONFIG_DIR", "")
+	t.Setenv("PI_CODING_AGENT_DIR", "")
+	t.Setenv("PI_CONFIG_DIR", "")
 	if runtime.GOOS == "windows" {
 		t.Skip("filesystem symlink fixture needs Unix symlink permissions")
 	}
@@ -316,5 +321,23 @@ func TestHookRejectsUnsupportedModesTargetsAndEvents(t *testing.T) {
 		if code != 2 || output != "" {
 			t.Errorf("%v: code %d, output %q, diagnostic %q", args, code, output, diagnostic)
 		}
+	}
+}
+
+func TestOMPAgentDirectoryOverrides(t *testing.T) {
+	root, _ := hookTestEnvironment(t)
+	h, _, err := parseHookOptions([]string{}, options{configPath: filepath.Join(root, "catalog.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PI_CONFIG_DIR", filepath.Join(root, "omp root"))
+	opts, err := integrationOptions(h, false)
+	if err != nil || opts.OMPHome != filepath.Join(root, "omp root", "agent") {
+		t.Fatalf("root override %+v %v", opts, err)
+	}
+	t.Setenv("PI_CODING_AGENT_DIR", filepath.Join(root, "profile agent"))
+	opts, err = integrationOptions(h, false)
+	if err != nil || opts.OMPHome != filepath.Join(root, "profile agent") {
+		t.Fatalf("agent override %+v %v", opts, err)
 	}
 }

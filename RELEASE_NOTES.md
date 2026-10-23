@@ -1,3 +1,10 @@
+# Unreleased
+
+- Add oh-my-pi (OMP) live context integration with user/project/profile-directory
+  installation, current what/why/when output and project-aware refresh.
+- Preserve other messages, remove stale owned context on failure, and retain
+  managed-file ownership, backup and symlink protections.
+
 # lsops 0.3.0
 
 - Optional why/when guidance complements each tool's existing description (what).

@@ -11,8 +11,8 @@ lsops hook install codex --mode instructions
 lsops hook install all --mode output
 ```
 
-Supported target names: `claude`, `codex`, `gemini`, `cursor`, `copilot`, `opencode`.
-`all` configures all six, even if a harness is not installed. It processes each
+Supported target names: `claude`, `codex`, `gemini`, `cursor`, `copilot`, `opencode`, `omp`.
+`all` configures all seven, even if a harness is not installed. It processes each
 independently, reports any failure, and returns a nonzero status if one fails.
 
 The default scope is user-wide. To configure the current project or an explicit
@@ -40,8 +40,7 @@ usage. It does not enumerate tools or require a valid catalogue to render.
 
 `output` injects the current plain-text output of `lsops`. It adds no separate
 agent instruction or context preamble. Harnesses that require JSON receive that
-same text inside their documented context field. OpenCode receives plain text
-through its plugin. Hooks never opt into automatic PATH discovery.
+same text inside their documented context field. OpenCode and OMP receive plain text through their plugins. Hooks never opt into automatic PATH discovery.
 
 Inspect either payload locally:
 
@@ -71,6 +70,7 @@ edited by lsops.
 | Gemini CLI | `SessionStart` and `BeforeAgent` | Refreshes on the next submitted user turn. No immediate mid-turn post-compaction guarantee. |
 | Cursor | `sessionStart` | Startup only; this is asynchronous, so injection before the very first request is not guaranteed. |
 | GitHub Copilot CLI | `sessionStart` | Startup only; no documented post-compaction context event. |
+| oh-my-pi (OMP) | ExtensionAPI `context` | Re-renders before each model request; the next context pass after compaction receives the current catalogue. |
 | OpenCode | V2 `context`; V1 `experimental.chat.system.transform` | Fresh context is added to each outgoing model request, including the first continuation after compaction. |
 
 `PreCompact`/`PreCompress` notifications are not installed as pretend
@@ -107,6 +107,7 @@ transport, generated commands, and plugin callbacks are tested separately.
 | Gemini | `~/.gemini/settings.json` | `.gemini/settings.json` |
 | Cursor | `~/.cursor/hooks.json` | `.cursor/hooks.json` |
 | Copilot | `~/.copilot/hooks/lsops.json` | `.github/hooks/lsops.json` |
+| OMP | `~/.omp/agent/extensions/lsops.js` | `.omp/extensions/lsops.js` |
 | OpenCode | `~/.config/opencode/plugins/lsops.js` | `.opencode/plugins/lsops.js` |
 
 For user scope, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, and `COPILOT_HOME` override the
@@ -137,7 +138,7 @@ lsops hook uninstall all --scope project
 
 `status` reports whether configuration is present. It cannot prove a harness has
 loaded or approved the hook. `preview` prints the proposed standalone JSON or
-OpenCode plugin without touching files. Removal preserves unrelated entries and
+OpenCode or OMP plugin without touching files. Removal preserves unrelated entries and
 backs up previous bytes. Reload/restart the harness if it does not automatically
 reload its configuration.
 
@@ -165,3 +166,39 @@ Primary documentation links supplied with version 0.2.0 (not a claim of a new au
   direct executable hooks, user/project locations, and sessionStart additionalContext.
 - [OpenCode plugin API](https://opencode.ai/v2/docs/build/plugins/): context hooks,
   registrations, session lookup, and the dual V1/V2 object format.
+
+## oh-my-pi (OMP)
+
+```sh
+lsops hook install omp --mode output
+lsops hook status omp
+lsops hook preview omp --mode output
+lsops hook uninstall omp
+```
+
+The generated extension uses the current ExtensionAPI `context` event, not the
+legacy HookRunner. It invokes the pinned lsops executable with literal argv and
+`ctx.cwd` before each model request. Only its own `lsops.catalogue` custom message
+is replaced in the outgoing context copy; user messages and other extensions are
+preserved, and nothing is appended to the persisted session. An invalid directory
+or failed refresh removes any old lsops context rather than replaying stale tools.
+What/why/when guidance, `--limit`, and explicitly registered project overlays use
+the same live renderer as other integrations. No registered CLI is executed.
+
+User scope honors `PI_CODING_AGENT_DIR` first, otherwise `PI_CONFIG_DIR/agent`,
+otherwise `~/.omp/agent`. For a named profile, target its actual agent directory
+when installing, for example:
+
+```sh
+PI_CODING_AGENT_DIR="$HOME/.omp/profiles/work/agent" lsops hook install omp --mode output
+```
+
+OMP's own `--profile work` then discovers that directory normally. Project scope
+writes `.omp/extensions/lsops.js` in the selected directory; upstream discovery is
+cwd-only, not an ancestor walk. Restart or reload OMP after install/uninstall.
+Disabled extension discovery, disabled extensions and project trust are not
+changed. Installing a hook is not proof it has loaded in an authenticated session.
+
+Sources checked 2026-10-23:
+- [OMP extension discovery](https://github.com/can1357/oh-my-pi/blob/main/docs/extension-loading.md)
+- [ExtensionAPI context event](https://github.com/can1357/oh-my-pi/blob/main/docs/extensions.md)

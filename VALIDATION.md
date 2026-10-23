@@ -24,3 +24,15 @@ Linux, macOS and Windows but is not claimed to have run before repository creati
 The Go 1.23 minimum comes from the supplied source; this pass used Go 1.27.3.
 Historical upstream evidence is kept separately in
 [the supplied report](docs/validation-upstream.md).
+
+
+## OMP integration (unreleased)
+
+- Current upstream ExtensionAPI and native `.omp` discovery paths were inspected.
+- Generated-extension fixtures cover refresh, independent session cwd, duplicate
+  removal, preservation of other messages, failure redaction and invalid cwd.
+- Temporary user/project/custom-profile installs cover idempotence, backups,
+  status, foreign files and symlink refusal.
+- A real built lsops subprocess verified what/why/when, project overlays, a live
+  catalogue edit, sibling-directory isolation, and uninstall in a disposable HOME.
+- No authenticated OMP model session or harness trust approval was performed.

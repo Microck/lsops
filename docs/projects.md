@@ -70,7 +70,7 @@ lsops hook install claude --mode output
 each render selects the project using the hook process's current working directory
 and rereads its file. an already installed hook needs no rewrite after project
 registration or catalogue edits. OpenCode's generated plugin passes the session
-directory as the subprocess cwd; command hooks use the working directory supplied
+directory, and OMP's context hook passes `ctx.cwd`, as the subprocess cwd; command hooks use the working directory supplied
 by their harness. if a harness launches from elsewhere, that other directory is
 used, not a guessed active editor folder. this does not claim live authenticated
 end-to-end verification for every harness.
