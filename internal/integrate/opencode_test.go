@@ -271,7 +271,17 @@ console.log(JSON.stringify([JSON.parse(first.system[0].text), JSON.parse(next.sy
 	wantArgs, _ := json.Marshal(hookArgs("opencode", "context", opts))
 	for _, render := range renders {
 		args, _ := json.Marshal(render.Args)
-		if render.CWD != sessionDir || !bytes.Equal(args, wantArgs) {
+		// macOS may report /private/var for a temporary directory under /var.
+		// Compare directory identity without relaxing the exact argv assertion.
+		wantDir, err := os.Stat(sessionDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		gotDir, err := os.Stat(render.CWD)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !os.SameFile(gotDir, wantDir) || !bytes.Equal(args, wantArgs) {
 			t.Fatalf("child used wrong cwd/argv: %+v", render)
 		}
 	}
