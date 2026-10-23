@@ -101,7 +101,24 @@ func loadProject(root string) (Config, error) {
 	if !info.Mode().IsRegular() {
 		return Config{}, fmt.Errorf("project catalogue %q must be a regular file, not a symlink", path)
 	}
-	cfg, err := Load(path)
+	return readProject(path, info)
+}
+
+// readProject binds validation and parsing to one open handle.
+func readProject(path string, expected os.FileInfo) (Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return Config{}, err
+	}
+	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil {
+		return Config{}, err
+	}
+	if !opened.Mode().IsRegular() || !os.SameFile(expected, opened) {
+		return Config{}, fmt.Errorf("project catalogue %q changed while loading", path)
+	}
+	cfg, err := loadFrom(f, path)
 	if err != nil {
 		return Config{}, err
 	}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -139,5 +140,33 @@ func TestProjectCannotRegisterItsOwnBase(t *testing.T) {
 	after, _ := os.ReadFile(path)
 	if string(before) != string(after) {
 		t.Fatal("rejected registration changed file")
+	}
+}
+
+func TestProjectReadRejectsReplacement(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, ProjectFile)
+	if err := os.WriteFile(path, []byte(`{"tools":{"safe":{"description":"original"}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	expected, err := os.Lstat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(path, path+".original"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"tools":{"other":{"description":"replacement"}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readProject(path, expected); err == nil {
+		t.Fatal("replacement file accepted")
+	}
+}
+
+func TestLoadFromNeverReopensDiagnosticPath(t *testing.T) {
+	cfg, err := loadFrom(strings.NewReader(`{"tools":{"safe":{"description":"reader content"}}}`), filepath.Join(t.TempDir(), "does-not-exist.json"))
+	if err != nil || cfg.Tools["safe"].Description != "reader content" {
+		t.Fatalf("%+v %v", cfg, err)
 	}
 }
