@@ -21,6 +21,8 @@ import (
 )
 
 type tool struct {
+	Why          string   `json:"why,omitempty"`
+	When         string   `json:"when,omitempty"`
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Path         string   `json:"path"`
@@ -102,7 +104,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 			if info.Source == "" {
 				info.Source = "unknown"
 			}
-			if len(filters) > 0 && !matches(cmd.Name, info.Description, filters) {
+			if len(filters) > 0 && !matches(cmd.Name, info.Description+" "+override.Why+" "+override.When, filters) {
 				result.Summary.FilteredOut++
 				continue
 			}
@@ -119,6 +121,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 				helpHint, helpShell = override.Help, "user-defined"
 			}
 			result.Tools = append(result.Tools, tool{
+				Why: override.Why, When: override.When,
 				Name: cmd.Name, Description: info.Description, Path: cmd.Path,
 				Source: cleanText(info.Source, 1000), HelpHint: helpHint, HelpShell: helpShell,
 				Baseline: info.Baseline, Shadowed: cmd.Shadowed,
@@ -139,7 +142,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 				result.Summary.MissingDescription++
 				continue
 			}
-			if len(filters) > 0 && !matches(name, entry.Description, filters) {
+			if len(filters) > 0 && !matches(name, entry.Description+" "+entry.Why+" "+entry.When, filters) {
 				result.Summary.FilteredOut++
 				continue
 			}
@@ -153,6 +156,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 				helpHint, helpShell = entry.Help, "user-defined"
 			}
 			result.Tools = append(result.Tools, tool{
+				Why: entry.Why, When: entry.When,
 				Name: name, Description: cleanText(entry.Description, 240),
 				Path: path, Source: "config", HelpHint: helpHint, HelpShell: helpShell,
 				Registered: true, Available: available, ExplicitPath: entry.Path != "",
@@ -224,6 +228,12 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 		}
 		if !item.Available {
 			line += " [unavailable in this environment]"
+		}
+		if item.Why != "" {
+			line += "\n  why: " + item.Why
+		}
+		if item.When != "" {
+			line += "\n  when: " + item.When
 		}
 		if _, err := fmt.Fprintln(stdout, line); err != nil {
 			return fail(stderr, "write output: "+err.Error(), 1)

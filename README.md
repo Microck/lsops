@@ -107,3 +107,20 @@ for the full checks, [validation](VALIDATION.md) for platform limits, and the
 [release runbook](docs/release-runbook.md) for packaging.
 
 licensed under [mit](LICENSE).
+
+## what, why and when
+
+the description explains **what** a tool does. optionally add **why** it is useful
+and **when** the agent should choose it:
+
+```sh
+lsops add gh "Work with GitHub issues and pull requests" \
+  --why "Use structured GitHub data instead of scraping pages" \
+  --when "Inspecting issues, reviewing PRs or checking CI"
+```
+
+guidance appears in the normal list, JSON and output-mode hooks. each field is
+limited to 240 characters; keep it concrete and include important limits.
+omitted flags preserve existing guidance; `--why=` or `--when=` clears it.
+existing description-only configs still work. guidance is user-authored context,
+not permission to bypass an agent's trust or approval rules.
