@@ -91,7 +91,7 @@ func samePath(a, b string) bool {
 
 func loadProject(root string) (Config, error) {
 	path := filepath.Join(root, ProjectFile)
-	info, err := os.Lstat(path)
+	info, err := projectFileInfo(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return Config{}, fmt.Errorf("create %s before enabling this project", path)
 	}
@@ -104,7 +104,21 @@ func loadProject(root string) (Config, error) {
 	return readProject(path, info)
 }
 
+// projectFileInfo freezes identity before the later content open. On Windows,
+// os.SameFile lazily loads identity from the pathname, so prime that cache now.
+func projectFileInfo(path string) (os.FileInfo, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() || !os.SameFile(info, info) {
+		return nil, fmt.Errorf("project catalogue %q must be a stable regular file", path)
+	}
+	return info, nil
+}
+
 // readProject binds validation and parsing to one open handle.
+// expected must come from projectFileInfo, which freezes Windows identity.
 func readProject(path string, expected os.FileInfo) (Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
