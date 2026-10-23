@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "tools": {
+    "parallel-cli": {
+      "description": "Parallel CLI for web search and research workflows.",
+      "help": "parallel-cli --help"
+    },
+    "acme-deploy": {
+      "description": "Fictional example: deploy an Acme service to a chosen environment.",
+      "path": "/opt/acme/bin/acme-deploy",
+      "help": "acme-deploy --help"
+    }
+  }
+}
