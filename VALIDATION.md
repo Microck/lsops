@@ -37,3 +37,21 @@ Historical upstream evidence is kept separately in
 - A real built lsops subprocess verified what/why/when, project overlays, a live
   catalogue edit, sibling-directory isolation, and uninstall in a disposable HOME.
 - No authenticated OMP model session or harness trust approval was performed.
+
+## install links and package updates
+
+The portable install/update tests use injected package-manager runners and
+isolated temporary catalogues, never real global installs. They cover package
+URL validation, argv construction, preview vs execution, selection validation,
+partial failures, exact-link auto-update approvals, changed/hidden/deleted
+sources, cancellation, locks, symlink rejection, portable export/import, HTTPS
+and size limits, and non-executing inventory. Native npm/uv/brew/Go installation
+and OS scheduler setup are separate operator acceptance checks, not claims made
+by these fixtures. Cross-compilation is not native Windows/macOS acceptance.
+
+Installer coverage includes TLS-trusted local fixture downloads, digest mismatch
+before file creation/execution, body limits, redirect/TLS failure, an actual
+POSIX fixture script executed only after verification, and PowerShell argv
+construction. No third-party installer was executed. Native vendor installers,
+macOS/Windows script execution and OS scheduling remain operator acceptance
+limits. Alternate-manager tests verify argv, not live package installation.

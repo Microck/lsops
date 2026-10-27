@@ -153,3 +153,26 @@ create a .lsops.json catalogue in your project, then explicitly enable it with
 when lsops or an output hook runs inside it. local records can add, replace or hide
 tools. unregistered project files are never loaded. see the [setup, trust and
 refresh guide](docs/projects.md).
+
+## portable installs and automatic updates
+
+Attach a supported package link to a CLI, then preview or explicitly run its
+installation/update. Export a portable catalogue to an HTTPS setup link for
+another machine. Automatic updates require separate local approval:
+
+```sh
+lsops add ruff "Lint Python" --install-url https://pypi.org/project/ruff
+lsops install ruff
+lsops install --yes ruff
+lsops bundle export > tools.json
+lsops update --all --yes
+lsops auto-update enable --yes ruff
+lsops auto-update run
+```
+
+The foreground updater runs immediately and then every 24 hours; use `--once`
+with your OS scheduler. No service is silently installed. npm, bun, pnpm, uv, pipx, Cargo, Homebrew formula/cask and Go package links are
+supported, plus explicitly approved SHA-256-pinned HTTPS installer scripts
+(sh/bash/PowerShell). Required managers/interpreters must
+already be installed. See [portable installs and updates](docs/install-updates.md)
+for setup-link import, trust boundaries, disabling updates and platform limits.
