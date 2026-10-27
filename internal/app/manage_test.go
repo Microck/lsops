@@ -360,3 +360,119 @@ func TestBundleRedirectPolicy(t *testing.T) {
 		t.Fatal("untrusted TLS accepted")
 	}
 }
+
+func TestAlternateManagerAndScriptPinsSuspendApproval(t *testing.T) {
+	opts, _ := managedFixture(t)
+	if code := sourceCommand([]string{"alpha", "https://www.npmjs.com/package/alpha", "--manager", "bun"}, opts, io.Discard, io.Discard); code != 0 {
+		t.Fatal(code)
+	}
+	if code := autoUpdateCommand([]string{"enable", "--yes", "alpha"}, opts, io.Discard, io.Discard); code != 0 {
+		t.Fatal(code)
+	}
+	base, _ := config.Load(opts.configPath)
+	approved, _ := loadApprovals(opts.configPath)
+	plan, skip, err := automaticPlans(base, approved)
+	if err != nil || len(plan) != 1 || len(skip) != 0 || plan[0].Args[0] != "bun" {
+		t.Fatal(plan, skip, err)
+	}
+	t1 := base.Tools["alpha"]
+	t1.InstallManager = "pnpm"
+	base.Tools["alpha"] = t1
+	plan, skip, err = automaticPlans(base, approved)
+	if err != nil || len(plan) != 0 || len(skip) != 1 {
+		t.Fatal(plan, skip, err)
+	}
+	t1.InstallURL = "https://example.test/install.sh"
+	t1.InstallManager = "sh"
+	t1.InstallSHA256 = strings.Repeat("a", 64)
+	base.Tools["alpha"] = t1
+	if err := config.Save(opts.configPath, base); err != nil {
+		t.Fatal(err)
+	}
+	if code := autoUpdateCommand([]string{"enable", "--yes", "--allow-scripts", "alpha"}, opts, io.Discard, io.Discard); code != 0 {
+		t.Fatal(code)
+	}
+	approved, _ = loadApprovals(opts.configPath)
+	plan, _, err = automaticPlans(base, approved)
+	if err != nil || len(plan) != 1 || plan[0].Args[0] != "verified-script" {
+		t.Fatal(plan, err)
+	}
+	t1.InstallSHA256 = strings.Repeat("b", 64)
+	base.Tools["alpha"] = t1
+	plan, skip, err = automaticPlans(base, approved)
+	if err != nil || len(plan) != 0 || len(skip) != 1 {
+		t.Fatal(plan, skip, err)
+	}
+	// Portable metadata contains the pin and manager, but importing it does not
+	// change the separate previously approved pin.
+	if err := config.ImportTools(opts.configPath, portable(base)); err != nil {
+		t.Fatal(err)
+	}
+	unchanged, _ := loadApprovals(opts.configPath)
+	if unchanged.Tools["alpha"].InstallSHA256 != strings.Repeat("a", 64) {
+		t.Fatal(unchanged)
+	}
+}
+func TestScriptAddFlagsAndClearingAreAtomic(t *testing.T) {
+	opts, _ := managedFixture(t)
+	run := func(args ...string) int {
+		return Run(append([]string{"--config", opts.configPath}, args...), io.Discard, io.Discard, "test")
+	}
+	if code := run("add", "alpha", "Script CLI", "--install-url", "https://example.test/install.sh", "--install-manager", "bash", "--install-sha256", strings.Repeat("c", 64)); code != 0 {
+		t.Fatal(code)
+	}
+	cfg, err := config.Load(opts.configPath)
+	if err != nil || cfg.Tools["alpha"].InstallManager != "bash" {
+		t.Fatal(cfg, err)
+	}
+	before, _ := os.ReadFile(opts.configPath)
+	if code := run("add", "alpha", "Bad change", "--install-sha256=bad"); code == 0 {
+		t.Fatal("bad pin accepted")
+	}
+	after, _ := os.ReadFile(opts.configPath)
+	if !bytes.Equal(before, after) {
+		t.Fatal("invalid source partially saved")
+	}
+	if code := run("add", "alpha", "Clear link", "--install-url="); code != 0 {
+		t.Fatal(code)
+	}
+	cfg, err = config.Load(opts.configPath)
+	if err != nil || cfg.Tools["alpha"].InstallManager != "" || cfg.Tools["alpha"].InstallSHA256 != "" {
+		t.Fatal(cfg, err)
+	}
+}
+func TestScriptFetchRefusesExistingFilesBeforeNetworking(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "installer.sh")
+	if err := os.WriteFile(file, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if code := scriptCommand([]string{"fetch", "https://example.invalid/install.sh", file}, io.Discard, io.Discard); code == 0 {
+		t.Fatal("overwrote file")
+	}
+	data, _ := os.ReadFile(file)
+	if string(data) != "keep" {
+		t.Fatal(string(data))
+	}
+}
+
+func TestScriptExecutionRequiresSeparateOptInBeforeAnyOperation(t *testing.T) {
+	opts, cfg := managedFixture(t)
+	cfg.Tools["script"] = config.Tool{Description: "Script", InstallURL: "https://example.test/install.sh", InstallManager: "sh", InstallSHA256: strings.Repeat("a", 64)}
+	if err := config.Save(opts.configPath, cfg); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	run := func(context.Context, []string, io.Writer, io.Writer) error { calls++; return nil }
+	if code := installWithRunner([]string{"--yes", "--all"}, opts, false, io.Discard, io.Discard, run); code == 0 {
+		t.Fatal("scripts implicitly approved")
+	}
+	if calls != 0 {
+		t.Fatal("partial operations before script consent")
+	}
+	if code := autoUpdateCommand([]string{"enable", "--yes", "--all"}, opts, io.Discard, io.Discard); code == 0 {
+		t.Fatal("automatic script implicitly approved")
+	}
+	if code := installWithRunner([]string{"--yes", "--allow-scripts", "script"}, opts, false, io.Discard, io.Discard, run); code != 0 || calls != 1 {
+		t.Fatal(code, calls)
+	}
+}

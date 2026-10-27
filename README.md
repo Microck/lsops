@@ -171,7 +171,8 @@ lsops auto-update run
 ```
 
 The foreground updater runs immediately and then every 24 hours; use `--once`
-with your OS scheduler. No service is silently installed. npm, uv, Homebrew
-formula and Go command package links are supported; required managers must
+with your OS scheduler. No service is silently installed. npm, bun, pnpm, uv, pipx, Cargo, Homebrew formula/cask and Go package links are
+supported, plus explicitly approved SHA-256-pinned HTTPS installer scripts
+(sh/bash/PowerShell). Required managers/interpreters must
 already be installed. See [portable installs and updates](docs/install-updates.md)
 for setup-link import, trust boundaries, disabling updates and platform limits.

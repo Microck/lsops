@@ -21,23 +21,53 @@ import (
 )
 
 type installPlan struct {
-	Name string
-	Link string
-	Args []string
+	Name            string
+	Link            string
+	Manager, SHA256 string
+	Args            []string
 }
 
 func sourceCommand(args []string, opts options, stdout, stderr io.Writer) int {
-	if len(args) != 2 {
-		return fail(stderr, "usage: lsops source NAME HTTPS_PACKAGE_URL (use - to clear)", 2)
+	var pos []string
+	var manager, digest string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--help" {
+			fmt.Fprintln(stdout, "usage: lsops source NAME HTTPS_URL [--manager npm|bun|pnpm|uv|pipx|brew|brew-cask|cargo|go|sh|bash|pwsh|powershell] [--sha256 HASH]; use - to clear")
+			return 0
+		}
+		key, value, inline := strings.Cut(arg, "=")
+		if key == "--manager" || key == "--sha256" {
+			if !inline {
+				i++
+				if i >= len(args) {
+					return fail(stderr, key+" needs a value", 2)
+				}
+				value = args[i]
+			}
+			if key == "--manager" {
+				manager = value
+			} else {
+				digest = value
+			}
+			continue
+		}
+		if strings.HasPrefix(arg, "--") {
+			return fail(stderr, "unknown source option: "+arg, 2)
+		}
+		pos = append(pos, arg)
 	}
-	link := args[1]
+	if len(pos) != 2 {
+		return fail(stderr, "usage: lsops source NAME HTTPS_URL [--manager MANAGER] [--sha256 HASH] (use - to clear)", 2)
+	}
+	link := pos[1]
 	if link == "-" {
 		link = ""
 	}
-	if err := config.SetInstallURL(opts.configPath, args[0], link); err != nil {
+	if err := config.SetInstallSpec(opts.configPath, pos[0], link, manager, digest); err != nil {
 		return fail(stderr, err.Error(), 1)
 	}
-	fmt.Fprintln(stdout, "Saved install link. No installation or automatic update was enabled.")
+	fmt.Fprintln(stdout, "Saved install source. No installation or automatic update was enabled.")
 	return 0
 }
 
@@ -70,19 +100,23 @@ func plans(cfg config.Config, names []string, all, update bool) ([]installPlan, 
 		if t.InstallURL == "" {
 			return nil, fmt.Errorf("%q has no install link; use lsops source", n)
 		}
-		s, err := manage.Parse(t.InstallURL)
+		s, err := config.InstallSource(t)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, installPlan{n, t.InstallURL, s.Command(update)})
+		result = append(result, installPlan{Name: n, Link: t.InstallURL, Manager: t.InstallManager, SHA256: t.InstallSHA256, Args: s.Command(update)})
 	}
 	return result, nil
 }
 
 func printPlans(w io.Writer, plan []installPlan) {
 	for _, p := range plan {
-		b, _ := json.Marshal(p.Args)
-		fmt.Fprintf(w, "%s: %s\n  argv: %s\n", displayName(p.Name), p.Link, b)
+		if manage.IsScriptCommand(p.Args) {
+			fmt.Fprintf(w, "%s: %s\n  verified script: runner=%s sha256=%s (download, verify, then execute)\n", displayName(p.Name), p.Link, p.Manager, p.SHA256)
+		} else {
+			b, _ := json.Marshal(p.Args)
+			fmt.Fprintf(w, "%s: %s\n  argv: %s\n", displayName(p.Name), p.Link, b)
+		}
 	}
 }
 
@@ -120,7 +154,8 @@ func installCommand(args []string, opts options, update bool, stdout, stderr io.
 func installWithRunner(args []string, opts options, update bool, stdout, stderr io.Writer, run manage.Runner) int {
 	fs := flag.NewFlagSet("install/update", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	yes := fs.Bool("yes", false, "execute the displayed package-manager operations")
+	yes := fs.Bool("yes", false, "execute the displayed install/update operations")
+	allowScripts := fs.Bool("allow-scripts", false, "also authorize hash-pinned installer scripts")
 	all := fs.Bool("all", false, "select all base tools with install links")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -141,6 +176,9 @@ func installWithRunner(args []string, opts options, update bool, stdout, stderr 
 		fmt.Fprintln(stdout, "Preview only. Review the package identities, then rerun with --yes before names. Package install/build scripts may execute; latest versions may introduce breaking changes.")
 		return 0
 	}
+	if err := authorizeScripts(plan, *allowScripts); err != nil {
+		return fail(stderr, err.Error(), 2)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	err = withUpdateLock(opts.configPath, func() error { return executePlans(ctx, plan, run, stdout, stderr) })
@@ -156,7 +194,7 @@ func portable(cfg config.Config) config.Config {
 	out := config.Config{Version: 1, Tools: map[string]config.Tool{}}
 	for n, t := range cfg.Tools {
 		if t.Description != "" && !t.Hide {
-			out.Tools[n] = config.Tool{Description: t.Description, Why: t.Why, When: t.When, InstallURL: t.InstallURL}
+			out.Tools[n] = config.Tool{Description: t.Description, Why: t.Why, When: t.When, InstallURL: t.InstallURL, InstallManager: t.InstallManager, InstallSHA256: t.InstallSHA256}
 		}
 	}
 	return out
@@ -250,7 +288,7 @@ func bundleCommand(args []string, opts options, stdout, stderr io.Writer) int {
 	sort.Strings(names)
 	for _, n := range names {
 		t := cfg.Tools[n]
-		fmt.Fprintf(stdout, "%s: %s\n  install link: %s\n", displayName(n), t.Description, t.InstallURL)
+		fmt.Fprintf(stdout, "%s: %s\n  install link: %s\n  manager: %s\n  sha256: %s\n", displayName(n), t.Description, t.InstallURL, t.InstallManager, t.InstallSHA256)
 	}
 	if !*yes {
 		fmt.Fprintln(stdout, "Preview only. Download remote bundles to a local file for review, then import that same file with --yes. Existing descriptions and links are replaced; local paths are preserved. Import never installs or enables updates.")
@@ -278,4 +316,15 @@ func bundleClient() *http.Client {
 		}
 		return nil
 	}}
+}
+
+func authorizeScripts(plan []installPlan, allow bool) error {
+	if !allow {
+		for _, p := range plan {
+			if manage.IsScriptCommand(p.Args) {
+				return errors.New("selection includes installer scripts; review their contents and pins, then explicitly add --allow-scripts")
+			}
+		}
+	}
+	return nil
 }

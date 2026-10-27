@@ -48,3 +48,10 @@ sources, cancellation, locks, symlink rejection, portable export/import, HTTPS
 and size limits, and non-executing inventory. Native npm/uv/brew/Go installation
 and OS scheduler setup are separate operator acceptance checks, not claims made
 by these fixtures. Cross-compilation is not native Windows/macOS acceptance.
+
+Installer coverage includes TLS-trusted local fixture downloads, digest mismatch
+before file creation/execution, body limits, redirect/TLS failure, an actual
+POSIX fixture script executed only after verification, and PowerShell argv
+construction. No third-party installer was executed. Native vendor installers,
+macOS/Windows script execution and OS scheduling remain operator acceptance
+limits. Alternate-manager tests verify argv, not live package installation.

@@ -48,3 +48,65 @@ func TestRejectUntrustedOrAmbiguousLinks(t *testing.T) {
 		}
 	}
 }
+
+func TestAdditionalPackageManagers(t *testing.T) {
+	cases := []struct {
+		link, manager   string
+		install, update []string
+	}{
+		{"https://www.npmjs.com/package/@acme/cli", "bun", []string{"bun", "add", "--global", "--", "@acme/cli@latest"}, nil},
+		{"https://npmjs.com/package/example", "pnpm", []string{"pnpm", "add", "--global", "--", "example@npm:example@latest"}, nil},
+		{"https://pypi.org/project/ruff", "pipx", []string{"pipx", "install", "--", "ruff"}, []string{"pipx", "upgrade", "--", "ruff"}},
+		{"https://crates.io/crates/ripgrep", "", []string{"cargo", "install", "--locked", "--", "ripgrep"}, nil},
+		{"https://formulae.brew.sh/cask/wezterm", "", []string{"brew", "install", "--cask", "--", "wezterm"}, []string{"brew", "upgrade", "--cask", "--", "wezterm"}},
+	}
+	for _, c := range cases {
+		s, err := ParseOptions(c.link, c.manager, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := s.Command(false); !reflect.DeepEqual(got, c.install) {
+			t.Fatal(got, c.install)
+		}
+		want := c.update
+		if want == nil {
+			want = c.install
+		}
+		if got := s.Command(true); !reflect.DeepEqual(got, want) {
+			t.Fatal(got, want)
+		}
+	}
+	for _, c := range []struct{ link, manager, digest string }{
+		{"https://npmjs.com/package/a", "sh", ""},
+		{"https://npmjs.com/package/a", "uv", ""},
+		{"https://pypi.org/project/a", "bun", ""},
+		{"https://evil.test/install.sh", "", ""},
+		{"https://evil.test/install.sh", "bash", "bad"},
+		{"https://npmjs.com/package/a", "npm", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	} {
+		if _, err := ParseOptions(c.link, c.manager, c.digest); err == nil {
+			t.Fatalf("accepted %+v", c)
+		}
+	}
+}
+
+func TestHomebrewTapFileLinks(t *testing.T) {
+	for _, link := range []string{"https://github.com/Microck/homebrew-kagi/blob/main/Formula/kagi.rb", "https://raw.githubusercontent.com/Microck/homebrew-kagi/main/Formula/kagi.rb"} {
+		s, err := Parse(link)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(s.Command(false), []string{"brew", "install", "--formula", "--", "Microck/kagi/kagi"}) {
+			t.Fatal(s)
+		}
+	}
+	s, err := Parse("https://github.com/acme/homebrew-tools/blob/main/Casks/example.rb")
+	if err != nil || s.Manager != "brew-cask" || s.Package != "acme/tools/example" {
+		t.Fatal(s, err)
+	}
+	for _, link := range []string{"https://github.com/acme/other-repo/blob/main/Formula/tool.rb", "https://github.com/acme/homebrew-tools", "https://github.com/acme/homebrew-tools/blob/main/Formula/tool.sh", "https://github.com/acme/homebrew-tools/blob/main/Formula/--bad.rb"} {
+		if _, err := Parse(link); err == nil {
+			t.Fatal(link)
+		}
+	}
+}

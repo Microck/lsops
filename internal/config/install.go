@@ -11,9 +11,17 @@ import (
 )
 
 // SetInstallURL sets portable installation metadata, not permission to run it.
-func SetInstallURL(path, name, link string) error {
-	if link != "" {
-		if _, err := manage.Parse(link); err != nil {
+func SetInstallURL(path, name, link string) error { return SetInstallSpec(path, name, link, "", "") }
+
+func InstallSource(t Tool) (manage.Source, error) {
+	return manage.ParseOptions(t.InstallURL, t.InstallManager, t.InstallSHA256)
+}
+
+// SetInstallSpec replaces the complete install identity (including a script
+// digest or alternate manager) without changing local execution approvals.
+func SetInstallSpec(path, name, link, manager, digest string) error {
+	if link != "" || manager != "" || digest != "" {
+		if _, err := manage.ParseOptions(link, manager, digest); err != nil {
 			return err
 		}
 	}
@@ -29,7 +37,7 @@ func SetInstallURL(path, name, link string) error {
 	if !ok || t.Description == "" {
 		return fmt.Errorf("register %q with lsops add first", name)
 	}
-	t.InstallURL = link
+	t.InstallURL, t.InstallManager, t.InstallSHA256 = link, manager, digest
 	cfg.Tools[name] = t
 	return writeAtomic(path, cfg)
 }
@@ -76,7 +84,7 @@ func ImportTools(path string, incoming Config) error {
 		name = existingName(cfg.Tools, name, runtime.GOOS)
 		previous := cfg.Tools[name]
 		previous.Description, previous.Why, previous.When = t.Description, t.Why, t.When
-		previous.InstallURL = t.InstallURL
+		previous.InstallURL, previous.InstallManager, previous.InstallSHA256 = t.InstallURL, t.InstallManager, t.InstallSHA256
 		cfg.Tools[name] = previous
 	}
 	return writeAtomic(path, cfg)

@@ -38,7 +38,7 @@ func automaticPlans(base, approved config.Config) ([]installPlan, []string, erro
 	for _, n := range names {
 		t, ok := base.Tools[n]
 		a := approved.Tools[n]
-		if !ok || t.Hide || t.Description == "" || t.InstallURL == "" || t.InstallURL != a.InstallURL {
+		if !ok || t.Hide || t.Description == "" || t.InstallURL == "" || t.InstallURL != a.InstallURL || t.InstallManager != a.InstallManager || t.InstallSHA256 != a.InstallSHA256 {
 			skipped = append(skipped, n)
 			continue
 		}
@@ -58,10 +58,11 @@ func autoUpdateCommand(args []string, opts options, stdout, stderr io.Writer) in
 	action := args[0]
 	fs := flag.NewFlagSet("auto-update "+action, flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	var yes, all, once bool
+	var yes, all, once, allowScripts bool
 	interval := 24 * time.Hour
 	switch action {
 	case "enable":
+		fs.BoolVar(&allowScripts, "allow-scripts", false, "approve hash-pinned scripts for unattended execution")
 		fs.BoolVar(&yes, "yes", false, "approve these exact package links for unattended execution")
 		fs.BoolVar(&all, "all", false, "approve all base tools with install links")
 	case "disable":
@@ -108,13 +109,16 @@ func autoUpdateCommand(args []string, opts options, stdout, stderr io.Writer) in
 			fmt.Fprintln(stdout, "Preview only. --yes approves future package install/build scripts and potentially breaking latest versions for these exact links. It does not start a worker or install a service.")
 			return 0
 		}
+		if err := authorizeScripts(plan, allowScripts); err != nil {
+			return fail(stderr, err.Error(), 2)
+		}
 		err = withUpdateLock(opts.configPath, func() error {
 			approved, err := loadApprovals(opts.configPath)
 			if err != nil {
 				return err
 			}
 			for _, p := range plan {
-				approved.Tools[p.Name] = config.Tool{Description: cfg.Tools[p.Name].Description, InstallURL: p.Link}
+				approved.Tools[p.Name] = config.Tool{Description: cfg.Tools[p.Name].Description, InstallURL: p.Link, InstallManager: p.Manager, InstallSHA256: p.SHA256}
 			}
 			return config.Save(approvalsPath(opts.configPath), approved)
 		})
@@ -162,7 +166,7 @@ func autoUpdateCommand(args []string, opts options, stdout, stderr io.Writer) in
 	}
 	printPlans(stdout, plan)
 	for _, n := range skipped {
-		fmt.Fprintf(stdout, "%s: suspended (removed, hidden or install link changed); explicitly enable again after review\n", displayName(n))
+		fmt.Fprintf(stdout, "%s: suspended (removed, hidden or install source changed); explicitly enable again after review\n", displayName(n))
 	}
 	fmt.Fprintf(stdout, "%d eligible, %d suspended. Approvals do not indicate that a worker/service is running.\n", len(plan), len(skipped))
 	return 0
@@ -184,7 +188,7 @@ func autoPass(ctx context.Context, path string, run manage.Runner, stdout, stder
 			return err
 		}
 		for _, n := range skipped {
-			fmt.Fprintf(stderr, "%s: update suspended; install link no longer matches approval\n", displayName(n))
+			fmt.Fprintf(stderr, "%s: update suspended; install source no longer matches approval\n", displayName(n))
 		}
 		active = len(plan) > 0
 		return executePlans(ctx, plan, run, stdout, stderr)
