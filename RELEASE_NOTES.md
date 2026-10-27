@@ -1,4 +1,4 @@
-# unreleased
+# lsops 0.5.0
 
 - Add supported per-CLI package install links, explicit preview-first install and
   latest-version update commands, and portable catalogue export/import.
@@ -8,6 +8,27 @@
 - Support npm/bun/pnpm, uv/pipx, Cargo, Homebrew formulae/casks and Go package
   pages, plus explicitly approved SHA-256-pinned HTTPS installer scripts. See
   docs/install-updates.md for requirements, trust boundaries and platform limits.
+
+## 0.5.0 verification and limits
+
+- Source tests, race detection, vet and formatting pass; native GitHub CI runs
+  on Linux, macOS and Windows. Platform-specific fixture skips remain visible.
+- Five bundled targets are built from source: Linux amd64/arm64, macOS
+  amd64/arm64 and Windows amd64. Packaging executes the bundled Linux amd64
+  binary and a fresh disposable installation; the other bundled executables
+  are cross-compiled, not independently run by the publishing job.
+- Installer tests use locally authored fixtures. No live third-party installer,
+  authenticated harness session or native scheduler setup is implied.
+- Automatic updates are opt-in. Package managers/interpreters must already be
+  installed; scripts require an explicit runner, reviewed SHA-256 pin and
+  separate `--allow-scripts` approval. Changed script bytes fail closed.
+- See docs/install-updates.md for supported links, portable setup bundles,
+  manager-specific behavior and limits. Updating lsops alone does not install
+  tools or create a background service.
+
+Download lsops-0.5.0.zip and SHA256SUMS.txt together, verify the archive checksum,
+extract, then run install.sh or install.ps1. The archive contains source, docs,
+installers, five rebuilt binaries and an internal SHA256SUMS manifest.
 
 # lsops 0.4.1
 

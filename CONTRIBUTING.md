@@ -5,7 +5,7 @@ tools, execute registered commands, contact services, or rewrite harness trust.
 
 Use Go 1.23+ and Node.js 24 for plugin subprocess fixtures. There are no external
 Go modules. Run `gofmt`, `go test -count=1 ./...`, `go test -race ./...`, `go vet
-./...`, and `sh scripts/build-release.sh 0.4.1`. Report skips and platform limits.
+./...`, and `sh scripts/build-release.sh 0.5.0`. Report skips and platform limits.
 
 Test settings changes only in temporary homes/projects. Never use a contributor's
 real harness config, credentials or catalogue. Cover repeated install/uninstall,
