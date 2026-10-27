@@ -15,6 +15,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/Microck/lsops/internal/manage"
 )
 
 const (
@@ -28,6 +30,7 @@ const (
 // Legacy records without descriptions remain valid. Help is display text,
 // never a command for lsops to execute.
 type Tool struct {
+	InstallURL  string `json:"install_url,omitempty"`
 	Description string `json:"description,omitempty"`
 	Why         string `json:"why,omitempty"`
 	When        string `json:"when,omitempty"`
@@ -147,6 +150,11 @@ func loadFrom(reader io.Reader, path string) (Config, error) {
 			return Config{}, fmt.Errorf("tool %q in config %q: %w", name, path, err)
 		}
 		tool := disk.Tools[name]
+		if tool.InstallURL != "" {
+			if _, err := manage.Parse(tool.InstallURL); err != nil {
+				return Config{}, fmt.Errorf("tool %q: %w", name, err)
+			}
+		}
 		if tool.Hide && tool.Include {
 			return Config{}, fmt.Errorf("tool %q in config %q: hide and include cannot both be true", name, path)
 		}
@@ -260,6 +268,17 @@ func SetTool(path, name, description, executablePath string) error {
 // SetToolGuidance updates optional guidance atomically with the description.
 // Nil preserves an existing field; a pointer to an empty string clears it.
 func SetToolGuidance(path, name, description, executablePath string, why, when *string) error {
+	return SetToolDetails(path, name, description, executablePath, why, when, nil)
+}
+
+// SetToolDetails also updates an optional portable package link. Nil preserves
+// the link; an empty string clears it. No installation approval is implied.
+func SetToolDetails(path, name, description, executablePath string, why, when, installURL *string) error {
+	if installURL != nil && *installURL != "" {
+		if _, err := manage.Parse(*installURL); err != nil {
+			return err
+		}
+	}
 	if err := validateName(name); err != nil {
 		return err
 	}
@@ -296,6 +315,9 @@ func SetToolGuidance(path, name, description, executablePath string, why, when *
 			}
 			*update.target = value
 		}
+	}
+	if installURL != nil {
+		tool.InstallURL = *installURL
 	}
 	tool.Description = description
 	if executablePath != "" {

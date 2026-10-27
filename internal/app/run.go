@@ -72,6 +72,14 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 	pos := fs.Args()
 	if len(pos) > 0 {
 		switch pos[0] {
+		case "source":
+			return sourceCommand(pos[1:], opts, stdout, stderr)
+		case "install", "update":
+			return installCommand(pos[1:], opts, pos[0] == "update", stdout, stderr)
+		case "bundle":
+			return bundleCommand(pos[1:], opts, stdout, stderr)
+		case "auto-update":
+			return autoUpdateCommand(pos[1:], opts, stdout, stderr)
 		case "project":
 			return projectCommand(pos[1:], opts, stdout, stderr)
 		case "add", "describe":
@@ -129,7 +137,7 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 	// Accept --path before or after the positional pair. Never interpret the
 	// description as shell code, or execute a registered command.
 	var executablePath string
-	var why, when *string
+	var why, when, installURL *string
 	var pos []string
 	literal := false
 	for i := 0; i < len(args); i++ {
@@ -138,7 +146,7 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 			literal = true
 			continue
 		}
-		if !literal && (arg == "--why" || arg == "--when" || strings.HasPrefix(arg, "--why=") || strings.HasPrefix(arg, "--when=")) {
+		if !literal && (arg == "--install-url" || strings.HasPrefix(arg, "--install-url=") || arg == "--why" || arg == "--when" || strings.HasPrefix(arg, "--why=") || strings.HasPrefix(arg, "--when=")) {
 			flag, value, inline := strings.Cut(arg, "=")
 			if !inline {
 				i++
@@ -147,7 +155,9 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 				}
 				value = args[i]
 			}
-			if flag == "--why" {
+			if flag == "--install-url" {
+				installURL = &value
+			} else if flag == "--why" {
 				why = &value
 			} else {
 				when = &value
@@ -175,9 +185,9 @@ func addCommand(args []string, opts options, stdout, stderr io.Writer) int {
 		pos = append(pos, arg)
 	}
 	if len(pos) < 2 {
-		return fail(stderr, "usage: lsops add NAME \"description\" [--path /absolute/executable] [--why TEXT] [--when TEXT]", 2)
+		return fail(stderr, "usage: lsops add NAME \"description\" [--path /absolute/executable] [--why TEXT] [--when TEXT] [--install-url HTTPS_URL]", 2)
 	}
-	if err := config.SetToolGuidance(opts.configPath, pos[0], strings.Join(pos[1:], " "), executablePath, why, when); err != nil {
+	if err := config.SetToolDetails(opts.configPath, pos[0], strings.Join(pos[1:], " "), executablePath, why, when, installURL); err != nil {
 		return fail(stderr, err.Error(), 1)
 	}
 	fmt.Fprintf(stdout, "Saved %s. Live hooks will use the updated list on their next invocation.\n", displayName(pos[0]))
@@ -215,7 +225,15 @@ Usage:
   lsops [options] [filter ...]
   lsops project add|remove DIRECTORY
   lsops project list
-  lsops add NAME "description" [--path /absolute/executable] [--why TEXT] [--when TEXT]
+  lsops add NAME "description" [--path /absolute/executable] [--why TEXT] [--when TEXT] [--install-url HTTPS_URL]
+  lsops source NAME HTTPS_PACKAGE_URL
+  lsops install|update [--all] [--yes] [NAME ...]
+  lsops bundle export
+  lsops bundle import [--yes] FILE_OR_HTTPS_URL
+  lsops auto-update enable [--all] [--yes] [NAME ...]
+  lsops auto-update disable [--all] [NAME ...]
+  lsops auto-update status
+  lsops auto-update run [--once] [--interval 24h]
   lsops remove NAME
   lsops discover [options] [filter ...]
   lsops config [example]

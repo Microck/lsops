@@ -282,3 +282,14 @@ Text and output-mode hook renders include labeled why/when lines; names-only
 output stays names-only. JSON exposes `why` and `when`; filters search both.
 Instruction-mode hooks still request the live list rather than embedding it.
 Discovery uses guidance only from explicit config overrides, never guesses it.
+
+## install links, portability and updates
+
+Use `lsops add NAME "description" --install-url HTTPS_PACKAGE_URL` or
+`lsops source NAME HTTPS_PACKAGE_URL` to attach a supported package page.
+`install` and `update` preview by default; `--yes` executes package-manager argv.
+`bundle export` and `bundle import` move portable catalogue metadata between
+machines without carrying executable paths or project trust. `auto-update`
+separately approves exact source links and runs a periodic or scheduler-friendly
+one-shot updater. See the [full guide](install-updates.md) for supported managers,
+setup-link examples, latest-version semantics, and explicit safety boundaries.

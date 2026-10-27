@@ -21,6 +21,7 @@ import (
 )
 
 type tool struct {
+	InstallURL   string   `json:"install_url,omitempty"`
 	Why          string   `json:"why,omitempty"`
 	When         string   `json:"when,omitempty"`
 	Name         string   `json:"name"`
@@ -133,7 +134,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 				helpHint, helpShell = override.Help, "user-defined"
 			}
 			result.Tools = append(result.Tools, tool{
-				Why: override.Why, When: override.When,
+				Why: override.Why, When: override.When, InstallURL: override.InstallURL,
 				Name: cmd.Name, Description: info.Description, Path: cmd.Path,
 				Source: cleanText(info.Source, 1000), HelpHint: helpHint, HelpShell: helpShell,
 				Baseline: info.Baseline, Shadowed: cmd.Shadowed,
@@ -168,7 +169,7 @@ func list(filters []string, opts options, stdout, stderr io.Writer, version stri
 				helpHint, helpShell = entry.Help, "user-defined"
 			}
 			result.Tools = append(result.Tools, tool{
-				Why: entry.Why, When: entry.When,
+				Why: entry.Why, When: entry.When, InstallURL: entry.InstallURL,
 				Name: name, Description: cleanText(entry.Description, 240),
 				Path: path, Source: "config", HelpHint: helpHint, HelpShell: helpShell,
 				Registered: true, Available: available, ExplicitPath: entry.Path != "",

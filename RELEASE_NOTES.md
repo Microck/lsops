@@ -1,3 +1,13 @@
+# unreleased
+
+- Add supported per-CLI package install links, explicit preview-first install and
+  latest-version update commands, and portable catalogue export/import.
+- Add separate exact-link automatic-update approvals, a foreground periodic
+  worker, and one-shot runs for user-managed OS schedulers. No service is installed
+  implicitly; catalogue listing and agent hooks remain non-executing.
+- Support npm, uv/PyPI, Homebrew formulae and Go command package pages. See
+  docs/install-updates.md for requirements, trust boundaries and platform limits.
+
 # lsops 0.4.1
 
 - Fix OMP injection timing: session start/resume, navigation and post-compaction
