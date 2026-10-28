@@ -176,3 +176,13 @@ supported, plus explicitly approved SHA-256-pinned HTTPS installer scripts
 (sh/bash/PowerShell). Required managers/interpreters must
 already be installed. See [portable installs and updates](docs/install-updates.md)
 for setup-link import, trust boundaries, disabling updates and platform limits.
+
+## Canonfig add-on
+
+`lsops canonfig capture --bundle FILE` exports portable catalogue metadata for
+Canonfig to transport. `lsops canonfig sync --bundle FILE` reconciles that shared
+file into this machine's catalogue, preserving follower-only CLIs and refusing
+same-name conflicts. Both preview by default; `--apply` writes, and optional
+`--watch` keeps a foreground worker running. No tool installation, credential
+transfer or update approval is implicit. See [the complete workflow and recovery
+contract](docs/canonfig.md). The add-on belongs to lsops; Canonfig needs no changes.

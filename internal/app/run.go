@@ -78,6 +78,8 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 			return sourceCommand(pos[1:], opts, stdout, stderr)
 		case "install", "update":
 			return installCommand(pos[1:], opts, pos[0] == "update", stdout, stderr)
+		case "canonfig":
+			return canonfigCommand(pos[1:], opts, stdout, stderr)
 		case "bundle":
 			return bundleCommand(pos[1:], opts, stdout, stderr)
 		case "auto-update":
@@ -235,6 +237,7 @@ Usage:
   lsops source NAME HTTPS_URL [--manager MANAGER] [--sha256 HASH]
   lsops script fetch HTTPS_URL LOCAL_FILE
   lsops install|update [--all] [--yes] [--allow-scripts] [NAME ...]
+  lsops canonfig capture|sync --bundle FILE [--apply] [--watch] [--interval 30s]
   lsops bundle export
   lsops bundle import [--yes] FILE_OR_HTTPS_URL
   lsops auto-update enable [--all] [--yes] [--allow-scripts] [NAME ...]
