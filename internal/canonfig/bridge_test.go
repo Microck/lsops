@@ -273,3 +273,37 @@ func TestLargeReceiptDoesNotBlockNextSync(t *testing.T) {
 	mustSync(t, o)
 }
 func fmtName(i int) string { return fmt.Sprintf("tool-%d", i) }
+
+func TestCaseVariantJSONFieldsCannotDeleteOwnedTools(t *testing.T) {
+	o := fixture(t)
+	put(t, o.Bundle, cfg(map[string]config.Tool{"a": {Description: "source"}}))
+	mustSync(t, o)
+	before, _ := os.ReadFile(o.Config)
+	for _, input := range []string{
+		`{"version":1,"tools":{"a":{"description":"source"}},"Tools":null}`,
+		`{"version":1,"Version":1,"tools":{}}`,
+		`{"version":1,"tools":{"a":{"description":"source","Description":"changed"}}}`,
+		`{"version":1,"tools":{"a":{"install_sha256":"","inſtall_sha256":""}}}`,
+	} {
+		if e := os.WriteFile(o.Bundle, []byte(input), 0600); e != nil {
+			t.Fatal(e)
+		}
+		if _, e := Sync(o); e == nil {
+			t.Fatalf("accepted ambiguous input: %s", input)
+		}
+		after, _ := os.ReadFile(o.Config)
+		if !bytes.Equal(before, after) {
+			t.Fatal("ambiguous input mutated config")
+		}
+	}
+	put(t, o.Bundle, cfg(map[string]config.Tool{"a": {Description: "source"}}))
+	state := o.Config + ".canonfig.json"
+	raw, _ := os.ReadFile(state)
+	raw = bytes.Replace(raw, []byte(`"owned":`), []byte(`"Owned":null,"owned":`), 1)
+	if e := os.WriteFile(state, raw, 0600); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := Sync(o); e == nil {
+		t.Fatal("accepted ambiguous ownership receipt")
+	}
+}

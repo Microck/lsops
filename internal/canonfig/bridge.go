@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/Microck/lsops/internal/config"
@@ -565,6 +566,7 @@ func strictJSON(data []byte) error {
 					return e
 				}
 				name, ok := key.(string)
+				name = foldJSONKey(name)
 				if !ok || seen[name] {
 					return errors.New("duplicate or invalid JSON key")
 				}
@@ -592,4 +594,17 @@ func strictJSON(data []byte) error {
 		return errors.New("trailing JSON data")
 	}
 	return nil
+}
+
+// Match encoding/json's Unicode simple folding, not only ASCII lowercase.
+func foldJSONKey(s string) string {
+	return strings.Map(func(r rune) rune {
+		min := r
+		for next := unicode.SimpleFold(r); next != r; next = unicode.SimpleFold(next) {
+			if next < min {
+				min = next
+			}
+		}
+		return min
+	}, s)
 }
