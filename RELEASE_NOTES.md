@@ -1,3 +1,41 @@
+# lsops 0.6.0
+
+- Add the lsops-owned Canonfig add-on: `lsops canonfig capture --bundle FILE`
+  exports portable catalogue metadata, and `lsops canonfig sync --bundle FILE`
+  reconciles a transported staging file into the local registry. Canonfig itself
+  needs no changes and never replaces the follower's live lsops config.
+- Preserve follower-only tools and local paths/help/visibility/project trust.
+  Same-name, case and local-edit conflicts stop the whole batch. Shared removals
+  clear only unchanged bridge-owned metadata; no executable is uninstalled.
+- Preview by default, explicit `--apply`, optional foreground `--watch`. No
+  implicit installation, credential sharing, updater approval or OS service.
+- Add bounded strict JSON and Unicode case-folded duplicate-key rejection,
+  ownership receipts, checked writes, locks and retained recovery journals.
+  Stop other catalogue writers before apply. Interrupted sync requires explicit
+  recovery of both recorded backups; no cross-application transaction is claimed.
+- See docs/canonfig.md for source/follower setup, separate publication/sync,
+  concurrency boundaries and recovery. Existing install/update and hook commands
+  remain unchanged.
+
+## 0.6.0 verification and limits
+
+Source tests, race detection, vet and formatting pass locally; publication is
+conditioned on native Linux/macOS/Windows CI and bundle validation. The five
+bundled targets are rebuilt: Linux amd64/arm64, macOS amd64/arm64 and Windows
+amd64. Packaging executes Linux amd64 and a disposable install; other bundled
+binaries are cross-compiled, not all run by the publishing job.
+
+A built Linux CLI roundtrip verified shared additions/removals preserve a
+follower-only tool. No authenticated harness/model session, real fleet transport,
+third-party tool installation or OS scheduler setup is implied. Windows uses
+flushed files, rename and retained receipts; directory-entry power-loss durability
+is not claimed. Publication is followed by downloading and checking both checksum
+manifests and a fresh disposable install.
+
+Download lsops-0.6.0.zip and SHA256SUMS.txt together, verify the archive checksum,
+extract, then run install.sh or install.ps1. The archive contains source, docs,
+installers, five rebuilt binaries and its internal SHA256SUMS manifest.
+
 # lsops 0.5.0
 
 - Add supported per-CLI package install links, explicit preview-first install and
